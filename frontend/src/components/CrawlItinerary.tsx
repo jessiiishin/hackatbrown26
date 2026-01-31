@@ -16,7 +16,7 @@ interface Props {
 }
 
 const GOOGLE_MAPS_API_KEY =
-  "AIzaSyD6IoxTgwBVIPHBgqhtVWi3CuiHnNFuuYk";
+  "AIzaSyDPxDaN6zphc0lhM3UcmpNQwP62m6s2IMQ";
 
 export function CrawlItinerary({ crawl, onReset }: Props) {
   const [mapsLoaded, setMapsLoaded] = useState(false);
