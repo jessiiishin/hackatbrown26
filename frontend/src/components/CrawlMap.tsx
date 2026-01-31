@@ -104,7 +104,10 @@ export function CrawlMap({ stops }: Props) {
 
     // Add markers for each stop using AdvancedMarkerElement
     stops.forEach(async (stop, index) => {
-      const position = getCoordinates(stop.address, 'city');
+      const position =
+        stop.lat != null && stop.lng != null
+          ? { lat: stop.lat, lng: stop.lng }
+          : getCoordinates(stop.address, 'city');
       bounds.extend(position);
 
       // Create custom marker content
@@ -152,7 +155,7 @@ export function CrawlMap({ stops }: Props) {
             </p>
             <div style="display: flex; gap: 12px; font-size: 12px; color: #9ca3af; margin-bottom: 8px;">
               <span>⏱️ ${stop.duration} min</span>
-              ${stop.type === 'restaurant' ? `<span>💰 $${stop.price}</span>` : '<span>📍 Free</span>'}
+              ${stop.type === 'restaurant' ? `<span>💰 ${stop.priceTier ?? '$' + stop.price}</span>` : '<span>📍 Free</span>'}
             </div>
             ${stop.cuisine ? `<span style="background: #fed7aa; color: #9a3412; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500;">${stop.cuisine}</span>` : ''}
           </div>
@@ -182,7 +185,11 @@ export function CrawlMap({ stops }: Props) {
 
     // Add polyline to show the route
     if (stops.length > 1) {
-      const path = stops.map(stop => getCoordinates(stop.address, 'city'));
+      const path = stops.map((stop) =>
+        stop.lat != null && stop.lng != null
+          ? { lat: stop.lat, lng: stop.lng }
+          : getCoordinates(stop.address, 'city')
+      );
       new google.maps.Polyline({
         path,
         geodesic: true,

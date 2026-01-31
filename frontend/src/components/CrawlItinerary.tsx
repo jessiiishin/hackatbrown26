@@ -51,7 +51,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
    ${stop.description}
    Address: ${stop.address}
    Duration: ${stop.duration} minutes
-   ${stop.type === "restaurant" ? `Price: $${stop.price}` : "Free Entry"}
+   ${stop.type === "restaurant" ? `Price: ${stop.priceTier ?? '$' + stop.price}` : "Free Entry"}
    ${stop.cuisine ? `Cuisine: ${stop.cuisine}` : ""}
 `,
   )
@@ -358,7 +358,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
                         color: "#2E7D32",
                       }}
                     >
-                      ${stop.price}
+                      {stop.priceTier ?? `$${stop.price}`}
                     </div>
                   )}
                 </div>

@@ -18,11 +18,17 @@ export interface Stop {
   image: string;
   openTime: string; // "09:00"
   closeTime: string; // "22:00"
+  lat?: number;
+  lng?: number;
+  /** Price tier for display ($, $$, $$$, $$$$); set when from API or mock crawl */
+  priceTier?: BudgetTier;
 }
+
+export type BudgetTier = '$' | '$$' | '$$$' | '$$$$';
 
 export interface CrawlParams {
   city: string;
-  budget: number;
+  budgetTier: BudgetTier;
   startTime: string; // "09:00 AM"
   endTime: string; // "05:00 PM"
   dietary: string[];
@@ -35,25 +41,52 @@ export interface Crawl {
   route: string;
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 export default function App() {
   const [crawl, setCrawl] = useState<Crawl | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [crawlError, setCrawlError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Initial app load simulation
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2500);
+    const timer = setTimeout(() => setIsLoading(false), 2500);
     return () => clearTimeout(timer);
   }, []);
 
-  const handleGenerateCrawl = (params: CrawlParams) => {
+  const handleGenerateCrawl = async (params: CrawlParams) => {
     setCrawl(null);
-    // Simulate processing delay
-    setTimeout(() => {
+    setCrawlError(null);
+    setIsGenerating(true);
+    try {
+      const url = `${API_BASE}/places/restaurants?city=${encodeURIComponent(params.city)}&budgetTier=${encodeURIComponent(params.budgetTier)}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || errData.details || `Request failed (${res.status})`);
+      }
+      const data = await res.json();
+      const stops = mapApiRestaurantsToStops(data.restaurants || [], params);
+      if (stops.length === 0) {
+        setCrawlError('No restaurants found. Try a different city or budget tier.');
+        return;
+      }
+      const totalCost = stops.reduce((sum, s) => sum + s.price, 0);
+      const totalTime = stops.reduce((sum, s) => sum + s.duration, 0);
+      setCrawl({
+        stops,
+        totalCost,
+        totalTime,
+        route: generateRoute(stops),
+      });
+    } catch (err) {
+      setCrawlError(err instanceof Error ? err.message : 'Failed to load restaurants.');
+      // Fallback to mock data
       const generatedCrawl = generateCrawl(params);
       setCrawl(generatedCrawl);
-    }, 500);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleReset = () => {
@@ -92,8 +125,21 @@ export default function App() {
         {!crawl && <div className="mb-12"><SetupInstructions /></div>}
 
         <div className="relative">
+          {isGenerating && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#FDF8EF]/90 rounded-2xl min-h-[400px]">
+              <div className="text-center">
+                <div className="inline-block w-10 h-10 border-4 border-[#F59F00] border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-lg font-medium" style={{ color: '#242116' }}>Finding restaurants...</p>
+              </div>
+            </div>
+          )}
+          {crawlError && (
+            <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
+              {crawlError}
+            </div>
+          )}
           {!crawl ? (
-            <FoodCrawlForm onGenerate={handleGenerateCrawl} />
+            <FoodCrawlForm onGenerate={handleGenerateCrawl} disabled={isGenerating} />
           ) : (
             <CrawlItinerary crawl={crawl} onReset={handleReset} />
           )}
@@ -118,12 +164,17 @@ function generateCrawl(params: CrawlParams): Crawl {
     stop.type === 'restaurant' ? sum + stop.price : sum, 0
   );
   const totalTime = selectedStops.reduce((sum, stop) => sum + stop.duration, 0);
-  
+
+  const stopsWithTier = selectedStops.map((s) => ({
+    ...s,
+    priceTier: s.type === 'restaurant' ? params.budgetTier : undefined,
+  }));
+
   return {
-    stops: selectedStops,
+    stops: stopsWithTier,
     totalCost,
     totalTime,
-    route: generateRoute(selectedStops)
+    route: generateRoute(stopsWithTier),
   };
 }
 
@@ -164,22 +215,41 @@ function isStopOpen(stop: Stop, windowStart: number, windowEnd: number): boolean
 function filterStops(stops: Stop[], params: CrawlParams): Stop[] {
   const windowStart = timeToMinutes(params.startTime);
   const windowEnd = timeToMinutes(params.endTime);
+  const [minPrice, maxPrice] = PRICE_TIER_RANGE[params.budgetTier];
 
   return stops.filter(stop => {
     if (!isStopOpen(stop, windowStart, windowEnd)) return false;
 
     if (stop.type === 'landmark') return true;
-    
+
+    // Only include restaurants in the user's selected price tier
+    if (stop.price < minPrice || stop.price > maxPrice) return false;
+
     if (params.dietary.length > 0) {
       return params.dietary.some(diet => stop.dietaryOptions.includes(diet));
     }
-    
+
     return true;
   });
 }
 
+const BUDGET_TIER_MAX: Record<BudgetTier, number> = {
+  '$': 15,
+  '$$': 40,
+  '$$$': 80,
+  '$$$$': 200,
+};
+
+/** Price range per tier for filtering mock restaurants (inclusive) */
+const PRICE_TIER_RANGE: Record<BudgetTier, [number, number]> = {
+  '$': [0, 15],
+  '$$': [16, 40],
+  '$$$': [41, 80],
+  '$$$$': [81, 250],
+};
+
 function selectOptimalStops(stops: Stop[], params: CrawlParams, availableTime: number): Stop[] {
-  const { budget } = params;
+  const budgetMax = BUDGET_TIER_MAX[params.budgetTier];
   const restaurants = stops.filter(s => s.type === 'restaurant');
   const landmarks = stops.filter(s => s.type['includes']('landmark')); // using includes for safety
   
@@ -194,7 +264,7 @@ function selectOptimalStops(stops: Stop[], params: CrawlParams, availableTime: n
   while (currentTimeUsed < availableTime) {
     if (addRestaurant && restaurantIndex < restaurants.length) {
       const restaurant = restaurants[restaurantIndex];
-      if (currentCost + restaurant.price <= budget && 
+      if (currentCost + restaurant.price <= budgetMax && 
           currentTimeUsed + restaurant.duration <= availableTime) {
         selected.push(restaurant);
         currentCost += restaurant.price;
@@ -232,6 +302,50 @@ function generateRoute(stops: Stop[]): string {
     if (index === 0) return `Start at ${stop.name}`;
     return `→ ${stop.name}`;
   }).join(' ');
+}
+
+/** API restaurant shape from GET /places/restaurants */
+interface ApiRestaurant {
+  id: string | null;
+  name: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+  priceLevel?: string;
+}
+
+const API_PRICE_LEVEL_TO_TIER: Record<string, BudgetTier> = {
+  PRICE_LEVEL_INEXPENSIVE: '$',
+  PRICE_LEVEL_MODERATE: '$$',
+  PRICE_LEVEL_EXPENSIVE: '$$$',
+};
+
+function mapApiRestaurantsToStops(restaurants: ApiRestaurant[], params: CrawlParams): Stop[] {
+  const pricePerStop = Math.round(BUDGET_TIER_MAX[params.budgetTier] / 5);
+  const placeholderImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800';
+
+  const matching = restaurants.filter((r) => {
+    if (!r.priceLevel) return true;
+    const tier = API_PRICE_LEVEL_TO_TIER[r.priceLevel];
+    return tier === params.budgetTier;
+  });
+
+  return matching.map((r) => ({
+    id: r.id || `place-${r.name.replace(/\s/g, '-')}`,
+    name: r.name,
+    type: 'restaurant' as const,
+    description: `${r.name} in ${params.city}`,
+    price: pricePerStop,
+    duration: 45,
+    address: r.address,
+    dietaryOptions: params.dietary,
+    image: placeholderImage,
+    openTime: '09:00',
+    closeTime: '22:00',
+    lat: r.lat ?? undefined,
+    lng: r.lng ?? undefined,
+    priceTier: params.budgetTier,
+  }));
 }
 
 function getCityData(city: string): Stop[] {
