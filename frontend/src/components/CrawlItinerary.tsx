@@ -7,23 +7,26 @@ import {
   Download,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { CrawlMap, loadGoogleMapsScript } from "./CrawlMap";
-import type { Crawl } from "../App";
+import { ResultMap } from "./ResultMap";
+import { loadGoogleMapsScript } from "../utils/googleMapsLoader";
+import type { Crawl } from "./Home";
 
 interface Props {
   crawl: Crawl;
   onReset: () => void;
 }
 
-const GOOGLE_MAPS_API_KEY =
-  "AIzaSyD6IoxTgwBVIPHBgqhtVWi3CuiHnNFuuYk";
-
 export function CrawlItinerary({ crawl, onReset }: Props) {
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
+  const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  if (!key) {
+    throw Error("Missing api key google")
+  }
+
   useEffect(() => {
-    loadGoogleMapsScript(GOOGLE_MAPS_API_KEY)
+    loadGoogleMapsScript(key)
       .then(() => {
         setMapsLoaded(true);
         setMapError(null);
@@ -217,7 +220,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           </p>
         </div>
         {mapsLoaded ? (
-          <CrawlMap stops={crawl.stops} />
+          <ResultMap stops={crawl.stops} />
         ) : mapError ? (
           <div className="w-full h-[500px] bg-red-50 rounded-2xl flex items-center justify-center border-2 border-red-200">
             <div className="text-center px-8">

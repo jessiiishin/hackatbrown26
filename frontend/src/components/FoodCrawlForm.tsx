@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, DollarSign, Clock, Apple, User, BookOpen, ChevronRight, ChevronLeft, Plus, History, Star } from 'lucide-react';
-import type { CrawlParams } from '../App';
+import type { CrawlParams } from './Home';
 
 interface Props {
   onGenerate: (params: CrawlParams) => void;
