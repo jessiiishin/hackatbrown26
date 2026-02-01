@@ -27,6 +27,17 @@ router.post('/search', async (req, res) => {
   }
 });
 
+// Inside restaurants.js (POST /api/restaurants/search)
+
+const restaurantDetails = await googleMaps.getEnhancedPlaceDetails(placeId);
+
+// res.json({
+//   name: restaurantDetails.name,
+//   duration: restaurantDetails.estimatedDuration, // This is now dynamic!
+//   address: restaurantDetails.formatted_address,
+//   // ... rest of data
+// });
+
 /**
  * POST /api/restaurants/is-open
  * Check if a restaurant is open at a specific time
@@ -111,6 +122,7 @@ router.post('/crawl-suggestions', async (req, res) => {
           location: place.location,
           formattedAddress: place.formattedAddress,
           rating: place.rating,
+          duration: restaurantDetails.estimatedDuration, //NEW
         }));
       }
     } catch (error) {

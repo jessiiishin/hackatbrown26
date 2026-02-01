@@ -224,7 +224,8 @@ function filterStops(stops: Stop[], params: CrawlParams): Stop[] {
 
     // Only include restaurants in the user's selected price tier
     if (stop.price < minPrice || stop.price > maxPrice) return false;
-
+    
+    // if (stop.)
     if (params.dietary.length > 0) {
       return params.dietary.some(diet => stop.dietaryOptions.includes(diet));
     }

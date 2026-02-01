@@ -128,10 +128,48 @@ async function isRestaurantOpen(placeId, dateTime) {
   }
 }
 
+// Inside googleMaps.js
+
+async function getEnhancedPlaceDetails(placeId) {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const url = `https://maps.googleapis.com/maps/api/place/details/json`;
+  
+  const response = await axios.get(url, {
+    params: {
+      place_id: placeId,
+      fields: 'name,rating,user_ratings_total,price_level,type',
+      key: apiKey
+    }
+  });
+
+  const details = response.data.result;
+  
+  // LOGIC: Estimate stay duration
+  // Quick Service/Cafe: 30-45 mins
+  // Casual Dining ($$): 60-75 mins
+  // Fine Dining ($$$+): 90-120 mins
+  let estimatedMinutes = 45; // Default
+
+  if (details.types.includes('bakery') || details.types.includes('cafe') || details.types.includes('fast_food') || details.types.includes('dessert')) {
+    estimatedMinutes = 30;
+  } else if (details.price_level >= 3) {
+    estimatedMinutes = 100; 
+  } else if (details.price_level === 2) {
+    estimatedMinutes = 75;
+  }
+
+  // Add a "Popularity Buffer": If a place has > 2000 reviews, add 15 mins for the wait
+  if (details.user_ratings_total > 2000) {
+    estimatedMinutes += 15;
+  }
+
+  return { ...details, estimatedDuration: estimatedMinutes };
+}
+
 /**
  * Get travel time and distance between two locations
  */
-async function getTravelTime(origin, destination, mode = 'driving') {
+async function getTravelTime(origin, destination, mode = 'walking') {
   try {
     if (!GOOGLE_MAPS_API_KEY) throw new Error('Google Maps API key not configured');
 
@@ -180,4 +218,5 @@ module.exports = {
   getRestaurantDetails,
   isRestaurantOpen,
   getTravelTime,
+  getEnhancedPlaceDetails,
 };
