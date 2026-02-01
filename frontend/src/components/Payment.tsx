@@ -16,7 +16,8 @@ export default function Payment({ setStep }: PaymentProps) {
       price: 99.99,
       description: 'Pre-pay for 1 crawl',
       features: [
-        'Pays for one food crawl',
+        'Pays for ten food crawls',
+        'Includes AI-powered audio tour guide',
         'Never expires',
       ],
     },
@@ -27,7 +28,8 @@ export default function Payment({ setStep }: PaymentProps) {
       price: 399.99,
       description: 'Pre-pay for 5 crawls',
       features: [
-        'Pays for five food crawls',
+        'Pays for ten food crawls',
+        'Includes AI-powered audio tour guide',
         'Never expires',
       ],
       popular: true,
@@ -36,10 +38,11 @@ export default function Payment({ setStep }: PaymentProps) {
       id: 'tenTimes',
       name: 'Ten Passes',
       tickets: 10,
-      price: 799.99,
+      price: 699.99,
       description: 'Pre-pay for 10 crawls',
       features: [
         'Pays for ten food crawls',
+        'Includes AI-powered audio tour guide',
         'Never expires',
       ],
     },
@@ -102,12 +105,11 @@ export default function Payment({ setStep }: PaymentProps) {
                   {plan.name}
                 </h3>
                 <div className="flex flex-col items-center gap-2">
-                  <div className="flex items-baseline gap-1">
+                  <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-bold mx-8" style={{ color: '#F59F00' }}>
                       ${plan.price}
                     </span>
-                    {' '}
-                    <span className="text-gray-500">total</span>
+                    <span className="text-gray-500"> total</span>
                   </div>
                   <span className="text-sm text-gray-500">
                     ${(plan.price / plan.tickets).toFixed(2)} per pass
