@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { MapPin, DollarSign, Clock, Apple } from 'lucide-react';
 import type { CrawlParams } from './types';
 import StartPage from './StartPage';
 import CrawlForm from './CrawlForm';
+import Payment from './Payment';
+import PaymentComplete from './PaymentComplete';
 
 interface Props {
   onGenerate: (params: CrawlParams) => void;
@@ -42,9 +44,37 @@ export default function Book({ onGenerate, step: initialStep = 0, setStep: setPa
         return <StartPage setStep={setStep} />;
       case 1:
         return <CrawlForm setStep={setStep} onGenerate={onGenerate} />;
+      case 2:
+        return <Payment setStep={setStep} />;
+      case 3:
+        return <PaymentComplete setStep={setStep} />;
       default:
         return <StartPage setStep={setStep} />;
     }
+  };
+
+  const pageVariants = {
+    enter: {
+      x: 100,
+      opacity: 0,
+      filter: 'blur(10px)',
+    },
+    center: {
+      x: 0,
+      opacity: 1,
+      filter: 'blur(0px)',
+    },
+    exit: {
+      x: -100,
+      opacity: 0,
+      filter: 'blur(10px)',
+    },
+  };
+
+  const pageTransition = {
+    x: { type: 'tween', duration: 0.5, ease: 'easeInOut' },
+    opacity: { type: 'tween', duration: 0.5, ease: 'easeInOut' },
+    filter: { type: 'tween', duration: 0.5, ease: 'easeInOut' },
   };
 
   return (
@@ -55,13 +85,20 @@ export default function Book({ onGenerate, step: initialStep = 0, setStep: setPa
         <div className="relative w-full h-full flex">
           
           {/* Active Main Page */}
-          <div className="flex-1 bg-[#fdfaf3] rounded-2xl shadow-2xl relative transition-all duration-700"
-               style={{ boxShadow: '20px 20px 60px rgba(0,0,0,0.1)' }}>
-            
-             <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              className="flex-1 bg-[#fdfaf3] rounded-2xl shadow-2xl relative"
+              style={{ boxShadow: '20px 20px 60px rgba(0,0,0,0.1)' }}
+              variants={pageVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={pageTransition}
+            >
               {renderPage()}
-            </AnimatePresence>
-        </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* Shadow floor */}
