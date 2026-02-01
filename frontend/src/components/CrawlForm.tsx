@@ -74,6 +74,7 @@ export default function FoodCrawlForm(props: Props) {
     <div
       className="w-full h-full p-6 sm:p-12 origin-left overflow-visible flex flex-col items-center"
     >
+      <div className="m-24"></div>
       <div className="relative flex items-center justify-center mb-8 w-full shrink-0">
         <button
           onClick={() => props.setStep(0)}
@@ -148,6 +149,7 @@ export default function FoodCrawlForm(props: Props) {
           </button>
         </div>
       </form>
+      <div className="m-24"></div>
     </div>
   );
 }
