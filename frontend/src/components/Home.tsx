@@ -4,6 +4,8 @@ import Book from './Book'
 import { CrawlItinerary } from './CrawlItinerary';
 import { cities } from './utils/citymock';
 import type { CrawlParams, Crawl, Stop, BudgetTier } from './types.tsx';
+import { AnimatePresence } from 'motion/react';
+import { LoadingScreen } from './LoadingScreen.tsx';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -203,6 +205,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen" style={{ backgroundImage: 'url(/background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+      <AnimatePresence>
+        {isLoading && <LoadingScreen key="loader" />}
+      </AnimatePresence>
       {/* Gradient overlay with grain texture */}
       <div className="fixed inset-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(253, 248, 239, 1) 0%, rgba(253, 248, 239, 1) 28%, rgba(245, 159, 0, 0.2) 100%), url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\' seed=\'2\'/%3E%3C/filter%3E%3Crect width=\'400\' height=\'400\' filter=\'url(%23noiseFilter)\' opacity=\'0.12\'/%3E%3C/svg%3E")', backgroundBlendMode: 'overlay' }} />
       
