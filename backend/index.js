@@ -116,6 +116,9 @@ const tierToPriceLevels = {
   $$$$: ['PRICE_LEVEL_EXPENSIVE'],
 };
 
+/** Minimum rating (out of 5) for restaurants; only places with rating >= this are included. */
+const MIN_RATING = 4.2;
+
 /**
  * Calls Google Places API (Text Search). If usePriceFilter is true, request includes priceLevels;
  * otherwise fetches all restaurants in city so we can filter by price in code (fallback when strict filter returns 0).
@@ -139,6 +142,7 @@ async function searchPlaces(city, priceLevels, apiKey, usePriceFilter) {
     'places.location',
     'places.priceLevel',
     'places.photos',
+    'places.rating',
   ].join(',');
 
   const response = await fetch(url, {
@@ -171,14 +175,18 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
   let places = await searchPlaces(city, priceLevels, apiKey, true);
   let matching = places.filter((p) => {
     const level = p.priceLevel || '';
-    return priceLevels.includes(level);
+    if (!priceLevels.includes(level)) return false;
+    const rating = p.rating != null ? Number(p.rating) : null;
+    return rating != null && rating >= MIN_RATING;
   });
 
   if (matching.length === 0) {
     places = await searchPlaces(city, priceLevels, apiKey, false);
     matching = places.filter((p) => {
       const level = p.priceLevel || '';
-      return priceLevels.includes(level);
+      if (!priceLevels.includes(level)) return false;
+      const rating = p.rating != null ? Number(p.rating) : null;
+      return rating != null && rating >= MIN_RATING;
     });
   }
 
