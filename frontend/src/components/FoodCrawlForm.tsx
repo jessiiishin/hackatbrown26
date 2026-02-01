@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, DollarSign, Clock, Apple, User, BookOpen, ChevronRight, ChevronLeft, Plus, History, Star } from 'lucide-react';
-import type { CrawlParams } from '../App';
+import type { CrawlParams, BudgetTier } from '../App';
 
 interface Props {
   onGenerate: (params: CrawlParams) => void;
+  disabled?: boolean;
 }
 
 const CITIES = ['New York', 'San Francisco', 'Tokyo', 'Paris'];
@@ -16,11 +17,11 @@ const DIETARY_OPTIONS = [
   { value: 'halal', label: 'Halal' },
 ];
 
-export function FoodCrawlForm({ onGenerate }: Props) {
+export function FoodCrawlForm({ onGenerate, disabled = false }: Props) {
   const [step, setStep] = useState(0); // 0: Cover/All About You, 1: Form
   const [city, setCity] = useState('');
   const [isCityDropdown, setIsCityDropdown] = useState(false);
-  const [budget, setBudget] = useState(50);
+  const [budgetTier, setBudgetTier] = useState<BudgetTier>('$$');
   const [startHour, setStartHour] = useState('09');
   const [startMinute, setStartMinute] = useState('00');
   const [startPeriod, setStartPeriod] = useState('AM');
@@ -38,7 +39,7 @@ export function FoodCrawlForm({ onGenerate }: Props) {
       setIsClicked(false);
       onGenerate({ 
         city, 
-        budget, 
+        budgetTier, 
         startTime: `${startHour}:${startMinute} ${startPeriod}`, 
         endTime: `${endHour}:${endMinute} ${endPeriod}`, 
         dietary 
@@ -53,10 +54,7 @@ export function FoodCrawlForm({ onGenerate }: Props) {
     setDietary(prev => prev.includes(value) ? prev.filter(d => d !== value) : [...prev, value]);
   };
 
-  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || 0;
-    setBudget(Math.max(0, Math.min(1000, value)));
-  };
+  const BUDGET_TIERS: BudgetTier[] = ['$', '$$', '$$$', '$$$$'];
 
   return (
     <div className="relative max-w-5xl mx-auto min-h-[700px] perspective-2000">
@@ -219,17 +217,24 @@ export function FoodCrawlForm({ onGenerate }: Props) {
                     <div>
                       <label className="flex items-center gap-2 mb-3 font-medium" style={{ color: '#242116' }}>
                         <DollarSign className="w-5 h-5" style={{ color: '#D1E892' }} />
-                        Budget
+                        Price tier
                       </label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
-                        <input
-                          type="number"
-                          value={budget}
-                          onChange={handleBudgetChange}
-                          className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none transition-colors"
-                          style={{ borderColor: budget > 0 ? '#D1E892' : '#e5e7eb' }}
-                        />
+                      <div className="flex flex-wrap gap-2">
+                        {BUDGET_TIERS.map((tier) => (
+                          <button
+                            key={tier}
+                            type="button"
+                            onClick={() => setBudgetTier(tier)}
+                            className="px-4 py-3 rounded-xl font-bold text-lg transition-all border-2"
+                            style={{
+                              backgroundColor: budgetTier === tier ? '#F59F00' : '#fff',
+                              color: budgetTier === tier ? '#FDF8EF' : '#242116',
+                              borderColor: budgetTier === tier ? '#F59F00' : '#e5e7eb',
+                            }}
+                          >
+                            {tier}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -299,12 +304,12 @@ export function FoodCrawlForm({ onGenerate }: Props) {
                   <div className="pt-4">
                     <button
                       type="submit"
-                      disabled={!city}
+                      disabled={!city || disabled}
                       className="w-full py-5 rounded-2xl font-bold text-xl transition-all relative overflow-hidden group shadow-lg"
                       style={{
-                        backgroundColor: city ? '#F59F00' : '#f3f4f6',
-                        color: city ? '#FDF8EF' : '#a1a1aa',
-                        cursor: city ? 'pointer' : 'not-allowed',
+                        backgroundColor: city && !disabled ? '#F59F00' : '#f3f4f6',
+                        color: city && !disabled ? '#FDF8EF' : '#a1a1aa',
+                        cursor: city && !disabled ? 'pointer' : 'not-allowed',
                         transform: isClicked ? 'scale(0.96)' : 'scale(1)'
                       }}
                     >

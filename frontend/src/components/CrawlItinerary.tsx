@@ -16,7 +16,7 @@ interface Props {
 }
 
 const GOOGLE_MAPS_API_KEY =
-  "AIzaSyD6IoxTgwBVIPHBgqhtVWi3CuiHnNFuuYk";
+  "AIzaSyDPxDaN6zphc0lhM3UcmpNQwP62m6s2IMQ";
 
 export function CrawlItinerary({ crawl, onReset }: Props) {
   const [mapsLoaded, setMapsLoaded] = useState(false);
@@ -51,7 +51,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
    ${stop.description}
    Address: ${stop.address}
    Duration: ${stop.duration} minutes
-   ${stop.type === "restaurant" ? `Price: $${stop.price}` : "Free Entry"}
+   ${stop.type === "restaurant" ? `Price: ${stop.priceTier ?? '$' + stop.price}` : "Free Entry"}
    ${stop.cuisine ? `Cuisine: ${stop.cuisine}` : ""}
 `,
   )
@@ -358,7 +358,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
                         color: "#2E7D32",
                       }}
                     >
-                      ${stop.price}
+                      {stop.priceTier ?? `$${stop.price}`}
                     </div>
                   )}
                 </div>
