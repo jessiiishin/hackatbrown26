@@ -86,7 +86,7 @@ export default function FoodCrawlForm(props: Props) {
           className="text-3xl font-bold"
           style={{ color: '#242116', fontFamily: 'Parkinsans' }}
         >
-          Chapter Setup
+          Crawl Setup
         </h2>
       </div>
 
