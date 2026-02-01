@@ -72,9 +72,8 @@ export default function Book({ onGenerate, step: initialStep = 0, setStep: setPa
   };
 
   const pageTransition = {
-    x: { type: 'tween', duration: 0.5, ease: 'easeInOut' },
-    opacity: { type: 'tween', duration: 0.5, ease: 'easeInOut' },
-    filter: { type: 'tween', duration: 0.5, ease: 'easeInOut' },
+    duration: 0.5,
+    ease: 'easeInOut',
   };
 
   return (

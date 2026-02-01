@@ -282,7 +282,7 @@ function BudgetComponent(props: BudgetProps) {
   return (
     <div>
       <label className="flex items-center gap-2 mb-3 font-medium" style={{ color: '#242116' }}>
-        <DollarSign className="w-5 h-5" style={{ color: '#C1EA78' }} />
+        <DollarSign className="w-5 h-5" style={{ color: '#82ab3b' }} />
         Price Tier
       </label>
       <div className="flex flex-wrap gap-2">

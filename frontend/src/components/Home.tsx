@@ -1,25 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'motion/react';
+import { UserButton } from '@clerk/clerk-react';
 import Book from './Book'
 import { CrawlItinerary } from './CrawlItinerary';
+import { SavedCrawlsList } from './SavedCrawlsList';
+import { useSavedCrawls } from '../hooks/useSavedCrawls';
 import { cities } from './utils/citymock';
 import type { CrawlParams, Crawl, Stop, BudgetTier } from './types.tsx';
-import { AnimatePresence } from 'motion/react';
-import { LoadingScreen } from './LoadingScreen.tsx';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function Home() {
   const [crawl, setCrawl] = useState<Crawl | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [crawlError, setCrawlError] = useState<string | null>(null);
   const [bookStep, setBookStep] = useState(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 2500);
-    return () => clearTimeout(timer);
-  }, []);
+  const [showSavedCrawls, setShowSavedCrawls] = useState(false);
+  const [currentCity, setCurrentCity] = useState<string>('');
+  const [justSaved, setJustSaved] = useState(false);
+  
+  const { saveCrawl, isLoading: isSaving } = useSavedCrawls();
 
   const handleGenerateCrawl = async (params: CrawlParams) => {
     setCrawl(null);
@@ -94,6 +94,7 @@ export default function Home() {
     setCrawl(null);
     setCrawlError(null);
     setIsGenerating(true);
+    setCurrentCity(params.city); // Store city for save crawl
     try {
       const itineraryRes = await fetch(`${API_BASE}/itinerary`, {
         method: 'POST',
@@ -112,11 +113,11 @@ export default function Home() {
           ...s,
           dietaryOptions: s.dietaryOptions ?? [],
         }));
-        const totalCost = stops.reduce((sum, s) => sum + s.price, 0);
+        const totalCost = stops.reduce((sum: number, s: Stop) => sum + s.price, 0);
         setCrawl({
           stops,
           totalCost,
-          totalTime: itineraryData.totalTime ?? stops.reduce((sum, s) => sum + s.duration, 0),
+          totalTime: itineraryData.totalTime ?? stops.reduce((sum: number, s: Stop) => sum + s.duration, 0),
           route: itineraryData.route ?? generateRoute(stops),
           budgetTier: params.budget,
         });
@@ -203,13 +204,55 @@ export default function Home() {
     });
   }, []);
 
+  const handleSaveCrawl = async () => {
+    if (!crawl || !currentCity) return;
+    const savedCrawl = await saveCrawl(crawl, currentCity);
+    if (savedCrawl) {
+      setJustSaved(true);
+      // Reset the checkmark after 3 seconds
+      setTimeout(() => setJustSaved(false), 3000);
+    }
+  };
+
+  const handleLoadSavedCrawl = (loadedCrawl: Crawl, city: string) => {
+    setCrawl(loadedCrawl);
+    setCurrentCity(city);
+    setBookStep(2); // Skip to itinerary view
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundImage: 'url(/background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
-      <AnimatePresence>
-        {isLoading && <LoadingScreen key="loader" />}
-      </AnimatePresence>
       {/* Gradient overlay with grain texture */}
       <div className="fixed inset-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(253, 248, 239, 1) 0%, rgba(253, 248, 239, 1) 28%, rgba(245, 159, 0, 0.2) 100%), url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\' seed=\'2\'/%3E%3C/filter%3E%3Crect width=\'400\' height=\'400\' filter=\'url(%23noiseFilter)\' opacity=\'0.12\'/%3E%3C/svg%3E")', backgroundBlendMode: 'overlay' }} />
+      
+      {/* Top right user controls */}
+      <div style={{ position: 'fixed', top: '16px', right: '24px', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button
+          onClick={() => setShowSavedCrawls(true)}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: 'white',
+            color: '#242116',
+            border: '2px solid #F59F00',
+            borderRadius: '8px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          }}
+        >
+          My Crawls
+        </button>
+        <UserButton afterSignOutUrl="/" />
+      </div>
+
+      {/* Saved Crawls Modal */}
+      {showSavedCrawls && (
+        <SavedCrawlsList
+          onLoadCrawl={handleLoadSavedCrawl}
+          onClose={() => setShowSavedCrawls(false)}
+        />
+      )}
       
       {/* Centered container with proper padding */}
       <div className="max-w-7xl mx-auto px-12 pt-24 pb-20 relative z-10" style={{ paddingTop: '2.5rem' }}>
@@ -237,8 +280,8 @@ export default function Home() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ 
-            opacity: isLoading ? 0 : 1,
-            y: isLoading ? 20 : 0
+            opacity: 1,
+            y: 0
           }}
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
@@ -271,6 +314,9 @@ export default function Home() {
                 crawl={crawl}
                 onReset={handleReset}
                 onOrderOptimized={handleOrderOptimized}
+                onSaveCrawl={handleSaveCrawl}
+                isSaving={isSaving}
+                justSaved={justSaved}
               />
             )}
           </div>
@@ -376,7 +422,7 @@ const PRICE_TIER_RANGE: Record<BudgetTier, [number, number]> = {
 function selectOptimalStops(stops: Stop[], params: CrawlParams, availableTime: number): Stop[] {
   const budgetMax = BUDGET_TIER_MAX[params.budget];
   const restaurants = stops.filter(s => s.type === 'restaurant');
-  const landmarks = stops.filter(s => s.type['includes']('landmark')); // using includes for safety
+  const landmarks = stops.filter(s => s.type === 'landmark'); // fixed: use strict equality for type
   
   const selected: Stop[] = [];
   let currentCost = 0;

@@ -5,6 +5,7 @@ import {
   Utensils,
   ArrowLeft,
   Download,
+  Check,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ResultMap } from "./ResultMap";
@@ -21,9 +22,15 @@ interface Props {
   onReset: () => void;
   /** Called when the map optimizes stop order for shortest walking path; parent can update crawl.stops. */
   onOrderOptimized?: (orderedStops: Stop[]) => void;
+  /** Called when the user clicks Save Crawl */
+  onSaveCrawl?: () => void;
+  /** Whether the crawl is currently being saved */
+  isSaving?: boolean;
+  /** Whether the crawl was just saved (show checkmark) */
+  justSaved?: boolean;
 }
 
-export function CrawlItinerary({ crawl, onReset, onOrderOptimized }: Props) {
+export function CrawlItinerary({ crawl, onReset, onOrderOptimized, onSaveCrawl, isSaving, justSaved }: Props) {
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
@@ -439,6 +446,91 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Save Crawl and New Crawl Buttons */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '16px',
+          marginTop: '24px',
+          marginBottom: '24px',
+        }}
+      >
+        {onSaveCrawl && (
+          <button
+            onClick={onSaveCrawl}
+            disabled={isSaving || justSaved}
+            style={{
+              padding: '16px 48px',
+              backgroundColor: justSaved ? '#82ab3b' : '#F59F00',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              fontWeight: 600,
+              cursor: isSaving || justSaved ? 'not-allowed' : 'pointer',
+              fontSize: '1.125rem',
+              opacity: isSaving ? 0.7 : 1,
+              boxShadow: justSaved ? '0 4px 12px rgba(130, 171, 59, 0.3)' : '0 4px 12px rgba(245, 159, 0, 0.3)',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+            onMouseEnter={(e) => {
+              if (!isSaving && !justSaved) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 159, 0, 0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = justSaved ? '0 4px 12px rgba(130, 171, 59, 0.3)' : '0 4px 12px rgba(245, 159, 0, 0.3)';
+            }}
+          >
+            {justSaved ? (
+              <>
+                <Check size={20} />
+                Saved!
+              </>
+            ) : isSaving ? (
+              'Saving...'
+            ) : (
+              'Save Crawl'
+            )}
+          </button>
+        )}
+        <button
+          onClick={onReset}
+          style={{
+            padding: '16px 48px',
+            backgroundColor: 'white',
+            color: '#242116',
+            border: '2px solid #F59F00',
+            borderRadius: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '1.125rem',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 159, 0, 0.3)';
+            e.currentTarget.style.backgroundColor = '#FFF8E7';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+            e.currentTarget.style.backgroundColor = 'white';
+          }}
+        >
+          New Crawl
+        </button>
       </div>
     </div>
   );
