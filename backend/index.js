@@ -9,6 +9,8 @@ const PORT = process.env.PORT || 3001;
 
 const config = require('./config');
 const db = require('./db');
+const axios = require('axios');
+const googleMaps = require('./src/config/googleMaps');
 
 app.use(bodyParser.json());
 
@@ -160,6 +162,7 @@ async function searchPlaces(city, priceLevels, apiKey, usePriceFilter) {
   return data.places || [];
 }
 
+
 /**
  * Fetches up to 5 restaurants in city for the given price tier. If the strict price filter returns 0,
  * retries without the price filter and keeps only places that match the tier so we still show 1–4 when available.
@@ -205,6 +208,29 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
           // keep image null, frontend will use placeholder
         }
       }
+
+
+      // Infer a fallback estimated duration from the search result metadata
+      function inferEstimatedMinutesFromPlace(place) {
+        // Default
+        let minutes = 20;
+        try {
+
+          if (p.priceLevel === 'PRICE_LEVEL_INEXPENSIVE') {
+            minutes = 40;
+          } else if (p.priceLevel === 'PRICE_LEVEL_MODERATE') {
+            minutes = 60;
+          } else if (p.priceLevel === 'PRICE_LEVEL_EXPENSIVE') {
+            minutes = 90;
+          }
+        } catch (err) {
+          // ignore and return default
+        }
+        return minutes;
+      }
+
+      let estimatedMinutes = inferEstimatedMinutesFromPlace(p);
+ 
       return {
         id: p.id || null,
         name: (p.displayName && p.displayName.text) || 'Unknown',
@@ -213,6 +239,7 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
         lng: (p.location && p.location.longitude) ?? null,
         priceLevel: p.priceLevel || budgetTier,
         image,
+        duration: estimatedMinutes,
       };
     })
   );

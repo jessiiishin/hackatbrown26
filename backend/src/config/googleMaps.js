@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const GOOGLE_MAPS_API_KEY = process.env.BACKEND_KEY || process.env.GOOGLE_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 const PLACES_API_URL = 'https://places.googleapis.com/v1/places';
 const DIRECTIONS_API_URL = 'https://maps.googleapis.com/maps/api/directions/json';
 
@@ -128,42 +128,65 @@ async function isRestaurantOpen(placeId, dateTime) {
   }
 }
 
-// Inside googleMaps.js
-
+// Robust enhanced details helper — returns { estimatedDuration, ...rawDetails }
 async function getEnhancedPlaceDetails(placeId) {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  const url = `https://maps.googleapis.com/maps/api/place/details/json`;
-  
-  const response = await axios.get(url, {
-    params: {
-      place_id: placeId,
-      fields: 'name,rating,user_ratings_total,price_level,type',
-      key: apiKey
+  if (!GOOGLE_MAPS_API_KEY) {
+    console.warn('getEnhancedPlaceDetails: missing API key');
+    return { estimatedDuration: 45 };
+  }
+
+  // Places v1 place endpoint (consistent with other calls in this module)
+  const url = `${PLACES_API_URL}/${encodeURIComponent(placeId)}`;
+  try {
+    const response = await axios.get(url, {
+      headers: getPlacesHeaders('places.name,places.rating,places.userRatingsTotal,places.user_ratings_total,places.priceLevel,places.price_level,places.types'),
+    });
+
+    const raw = response && response.data ? response.data : null;
+
+    // Try common locations where place details might live across API versions
+    let details = null;
+    if (raw) {
+      if (raw.result) details = raw.result;
+      else if (raw.place) details = raw.place;
+      else if (Array.isArray(raw.places) && raw.places.length > 0) details = raw.places[0];
+      else details = raw;
     }
-  });
 
-  const details = response.data.result;
-  
-  // LOGIC: Estimate stay duration
-  // Quick Service/Cafe: 30-45 mins
-  // Casual Dining ($$): 60-75 mins
-  // Fine Dining ($$$+): 90-120 mins
-  let estimatedMinutes = 45; // Default
+    if (!details) {
+      console.warn('getEnhancedPlaceDetails: empty response for', placeId, raw);
+      return { estimatedDuration: 45 };
+    }
 
-  if (details.types.includes('bakery') || details.types.includes('cafe') || details.types.includes('fast_food') || details.types.includes('dessert')) {
-    estimatedMinutes = 30;
-  } else if (details.price_level >= 3) {
-    estimatedMinutes = 100; 
-  } else if (details.price_level === 2) {
-    estimatedMinutes = 75;
+    const types = details.types || details.type || (details.places && details.places.types) || null;
+    const priceLevel = (typeof details.priceLevel !== 'undefined') ? details.priceLevel : details.price_level;
+    const userRatings = (typeof details.userRatingsTotal !== 'undefined') ? details.userRatingsTotal : details.user_ratings_total;
+
+    // Default minutes
+    let estimatedMinutes = 45;
+
+    if (Array.isArray(types) && (types.includes('bakery') || types.includes('cafe') || types.includes('fast_food') || types.includes('dessert'))) {
+      estimatedMinutes = 30;
+    } else if (typeof priceLevel === 'number') {
+      if (priceLevel >= 3) estimatedMinutes = 100;
+      else if (priceLevel === 2) estimatedMinutes = 75;
+      else estimatedMinutes = 45;
+    } else if (typeof priceLevel === 'string') {
+      const up = priceLevel.toUpperCase();
+      if (up.includes('EXPENSIVE')) estimatedMinutes = 100;
+      else if (up.includes('MODERATE')) estimatedMinutes = 75;
+      else estimatedMinutes = 45;
+    }
+
+    if (typeof userRatings === 'number' && userRatings > 2000) {
+      estimatedMinutes += 15;
+    }
+
+    return { ...(details || {}), estimatedDuration: estimatedMinutes };
+  } catch (err) {
+    console.warn('getEnhancedPlaceDetails failed for', placeId, err && (err.response?.data || err.message));
+    return { estimatedDuration: 45 };
   }
-
-  // Add a "Popularity Buffer": If a place has > 2000 reviews, add 15 mins for the wait
-  if (details.user_ratings_total > 2000) {
-    estimatedMinutes += 15;
-  }
-
-  return { ...details, estimatedDuration: estimatedMinutes };
 }
 
 /**
@@ -218,5 +241,5 @@ module.exports = {
   getRestaurantDetails,
   isRestaurantOpen,
   getTravelTime,
-  getEnhancedPlaceDetails,
+  // getEnhancedPlaceDetails,
 };

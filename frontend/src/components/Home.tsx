@@ -405,6 +405,7 @@ interface ApiRestaurant {
   priceLevel?: string;
   /** Photo URL from Place Photos (New) when available */
   image?: string | null;
+  duration: number; // Optional, from backend getEnhancedPlaceDetails
 }
 
 const API_PRICE_LEVEL_TO_TIER: Record<string, BudgetTier> = {
@@ -423,13 +424,15 @@ function mapApiRestaurantsToStops(restaurants: ApiRestaurant[], params: CrawlPar
     return tier === params.budget;
   });
 
+  
+
   return matching.map((r) => ({
     id: r.id || `place-${r.name.replace(/\s/g, '-')}`,
     name: r.name,
     type: 'restaurant' as const,
     description: `${r.name} in ${params.city}`,
     price: pricePerStop,
-    duration: 45,
+    duration: r.duration || 50,
     address: r.address,
     dietaryOptions: params.dietary,
     image: (r.image && r.image.trim()) ? r.image : placeholderImage,
