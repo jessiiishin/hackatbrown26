@@ -15,6 +15,8 @@ export interface Stop {
   lng?: number;
   /** Price tier for display ($, $$, $$$); set when from API or mock crawl */
   priceTier?: BudgetTier;
+  /** Walking minutes to next stop (from Routes/Distance Matrix API); only on itinerary from backend */
+  walkingMinutesToNext?: number;
 }
 
 export type BudgetTier = '$' | '$$' | '$$$';
