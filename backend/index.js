@@ -266,6 +266,37 @@ async function fetchLandmarksFromPlacesAPI(city, apiKey) {
   }));
 }
 
+/**
+ * GET /places/landmarks?city=New+York
+ * Returns 5 landmarks from Google Places API for the given city.
+ */
+app.get('/places/landmarks', async (req, res) => {
+  const city = (req.query.city || '').trim();
+
+  if (!city) {
+    return res.status(400).json({ error: 'Query parameter "city" is required' });
+  }
+
+  const apiKey = config.GOOGLE_PLACES_API_KEY;
+  if (!apiKey || apiKey.startsWith('YOUR_')) {
+    return res.status(503).json({
+      error: 'Google Places API key is not configured. Set GOOGLE_PLACES_API_KEY in backend .env',
+    });
+  }
+
+  try {
+    const landmarks = await fetchLandmarksFromPlacesAPI(city, apiKey);
+    return res.json({ landmarks });
+  } catch (err) {
+    console.error('Places API error:', err.message);
+    return res.status(502).json({
+      error: 'Failed to fetch landmarks from Google Places',
+      details: err.message,
+    });
+  }
+});
+
+
 // Placeholder: Logging user adjustments
 function logUserAdjustment(adjustment) {
   // TODO: Store adjustment in PostgreSQL (user adjustments table)

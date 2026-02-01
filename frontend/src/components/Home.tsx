@@ -54,6 +54,102 @@ export default function Home() {
     }
   };
 
+  // Handler to fetch landmarks and display as a crawl (mirroring restaurant logic)
+  const handleGenerateLandmarkCrawl = async (params: CrawlParams) => {
+    setCrawl(null);
+    setCrawlError(null);
+    setIsGenerating(true);
+    try {
+      const url = `${API_BASE}/places/landmarks?city=${encodeURIComponent(params.city)}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || errData.details || `Request failed (${res.status})`);
+      }
+      const data = await res.json();
+      const stops = mapApiLandmarksToStops(data.landmarks || [], params);
+      if (stops.length === 0) {
+        setCrawlError('No landmarks found. Try a different city.');
+        return;
+      }
+      setCrawl({
+        stops,
+        totalCost: 0,
+        totalTime: stops.length * 30,
+        route: stops.map((s: Stop) => s.name).join(' → '),
+        budgetTier: params.budget,
+      });
+    } catch (err) {
+      setCrawlError(err instanceof Error ? err.message : 'Failed to load landmarks.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handler to fetch both restaurants and landmarks and display as a combined crawl
+  const handleGenerateCombinedCrawl = async (params: CrawlParams) => {
+    setCrawl(null);
+    setCrawlError(null);
+    setIsGenerating(true);
+    try {
+      // Fetch restaurants
+      const restUrl = `${API_BASE}/places/restaurants?city=${encodeURIComponent(params.city)}&budgetTier=${encodeURIComponent(params.budget)}`;
+      const restRes = await fetch(restUrl);
+      if (!restRes.ok) {
+        const errData = await restRes.json().catch(() => ({}));
+        throw new Error(errData.error || errData.details || `Request failed (${restRes.status})`);
+      }
+      const restData = await restRes.json();
+      const restaurantStops = mapApiRestaurantsToStops(restData.restaurants || [], params);
+
+      // Fetch landmarks
+      const landUrl = `${API_BASE}/places/landmarks?city=${encodeURIComponent(params.city)}`;
+      const landRes = await fetch(landUrl);
+      if (!landRes.ok) {
+        const errData = await landRes.json().catch(() => ({}));
+        throw new Error(errData.error || errData.details || `Request failed (${landRes.status})`);
+      }
+      const landData = await landRes.json();
+      const landmarkStops = (landData.landmarks || []).map((l: any, idx: number) => ({
+        id: l.id || `landmark-${idx}`,
+        name: l.name,
+        type: 'landmark' as const,
+        description: l.address,
+        price: 0,
+        duration: 30,
+        address: l.address,
+        dietaryOptions: [],
+        image: l.image || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800',
+        openTime: '',
+        closeTime: '',
+        lat: l.lat,
+        lng: l.lng,
+        color: 'purple',
+      }));
+
+      // Combine and sort (optional: sort by name or interleave)
+      const stops = [...restaurantStops, ...landmarkStops];
+      if (stops.length === 0) {
+        setCrawlError('No restaurants or landmarks found. Try a different city.');
+        return;
+      }
+      // Optionally, sort or interleave
+      stops.sort((a, b) => a.name.localeCompare(b.name));
+      const totalCost = stops.reduce((sum, s) => sum + s.price, 0);
+      const totalTime = stops.reduce((sum, s) => sum + s.duration, 0);
+      setCrawl({
+        stops,
+        totalCost,
+        totalTime,
+        route: stops.map((s: Stop) => s.name).join(' → ')
+      });
+    } catch (err) {
+      setCrawlError(err instanceof Error ? err.message : 'Failed to load crawl.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleReset = () => {
     setCrawl(null);
   };
@@ -129,7 +225,7 @@ export default function Home() {
               </div>
             )}
             {!crawl ? (
-              <Book onGenerate={handleGenerateCrawl} />
+              <Book onGenerate={handleGenerateCombinedCrawl} />
             ) : (
               <CrawlItinerary
                 crawl={crawl}
@@ -342,5 +438,26 @@ function mapApiRestaurantsToStops(restaurants: ApiRestaurant[], params: CrawlPar
     lat: r.lat ?? undefined,
     lng: r.lng ?? undefined,
     priceTier: params.budget,
+  }));
+}
+
+// Helper to map API landmarks to Stop objects
+function mapApiLandmarksToStops(landmarks: any[], params: CrawlParams): Stop[] {
+  const placeholderImage = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800';
+  return (landmarks || []).map((l: any, idx: number) => ({
+    id: l.id || `landmark-${idx}`,
+    name: l.name,
+    type: 'landmark' as const,
+    description: l.address,
+    price: 0,
+    duration: 30,
+    address: l.address,
+    dietaryOptions: [],
+    image: l.image || placeholderImage,
+    openTime: '',
+    closeTime: '',
+    lat: l.lat,
+    lng: l.lng,
+    color: 'purple',
   }));
 }
