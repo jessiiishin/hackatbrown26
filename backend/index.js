@@ -130,7 +130,7 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
     textQuery: `restaurants in ${city}`,
     includedType: 'restaurant',
     priceLevels,
-    pageSize: 5,
+    pageSize: 20, // fetch more so we can randomly pick 5
     ...(locationRestriction && { locationRestriction: { rectangle: locationRestriction } }),
   };
 
@@ -140,6 +140,7 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
     'places.formattedAddress',
     'places.location',
     'places.priceLevel',
+    'places.photos',
   ].join(',');
 
   const response = await fetch(url, {
@@ -165,14 +166,43 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
     return priceLevels.includes(level);
   });
 
-  return matching.map((p) => ({
-    id: p.id || null,
-    name: (p.displayName && p.displayName.text) || 'Unknown',
-    address: p.formattedAddress || '',
-    lat: (p.location && p.location.latitude) ?? null,
-    lng: (p.location && p.location.longitude) ?? null,
-    priceLevel: p.priceLevel || budgetTier,
-  }));
+  // Shuffle and take 5 so each search returns a different set
+  const shuffled = matching.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const selected = shuffled.slice(0, 5);
+
+  const results = await Promise.all(
+    selected.map(async (p) => {
+      let image = null;
+      const photoName = p.photos && p.photos[0] && p.photos[0].name;
+      if (photoName) {
+        try {
+          const photoUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&maxHeightPx=600&skipHttpRedirect=true&key=${apiKey}`;
+          const photoRes = await fetch(photoUrl);
+          if (photoRes.ok) {
+            const photoData = await photoRes.json();
+            if (photoData.photoUri) image = photoData.photoUri;
+          }
+        } catch (e) {
+          // keep image null, frontend will use placeholder
+        }
+      }
+      return {
+        id: p.id || null,
+        name: (p.displayName && p.displayName.text) || 'Unknown',
+        address: p.formattedAddress || '',
+        lat: (p.location && p.location.latitude) ?? null,
+        lng: (p.location && p.location.longitude) ?? null,
+        priceLevel: p.priceLevel || budgetTier,
+        image,
+      };
+    })
+  );
+
+  return results;
 }
 
 // Placeholder: Logging user adjustments

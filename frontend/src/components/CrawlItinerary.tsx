@@ -8,17 +8,20 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CrawlMap, loadGoogleMapsScript } from "./CrawlMap";
-import type { Crawl } from "../App";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
+import type { Crawl, Stop } from "../App";
 
 interface Props {
   crawl: Crawl;
   onReset: () => void;
+  /** Called when the map optimizes stop order for shortest walking path; parent can update crawl.stops. */
+  onOrderOptimized?: (orderedStops: Stop[]) => void;
 }
 
 const GOOGLE_MAPS_API_KEY =
   "AIzaSyDPxDaN6zphc0lhM3UcmpNQwP62m6s2IMQ";
 
-export function CrawlItinerary({ crawl, onReset }: Props) {
+export function CrawlItinerary({ crawl, onReset, onOrderOptimized }: Props) {
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
@@ -217,7 +220,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           </p>
         </div>
         {mapsLoaded ? (
-          <CrawlMap stops={crawl.stops} />
+          <CrawlMap stops={crawl.stops} onOrderOptimized={onOrderOptimized} />
         ) : mapError ? (
           <div className="w-full h-[500px] bg-red-50 rounded-2xl flex items-center justify-center border-2 border-red-200">
             <div className="text-center px-8">
@@ -281,9 +284,9 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
             }}
           >
             <div className="flex gap-6 p-6">
-              {/* Image */}
+              {/* Image (Google Place photo or placeholder) */}
               <div className="flex-shrink-0">
-                <img
+                <ImageWithFallback
                   src={stop.image}
                   alt={stop.name}
                   className="w-48 h-48 object-cover rounded-xl"

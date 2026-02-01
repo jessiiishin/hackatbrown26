@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FoodCrawlForm } from './components/FoodCrawlForm';
 import { CrawlItinerary } from './components/CrawlItinerary';
@@ -93,6 +93,14 @@ export default function App() {
     setCrawl(null);
   };
 
+  const handleOrderOptimized = useCallback((orderedStops: Stop[]) => {
+    setCrawl((prev) =>
+      prev
+        ? { ...prev, stops: orderedStops, route: generateRoute(orderedStops) }
+        : null
+    );
+  }, []);
+
   return (
     <div className="min-h-screen pb-20" style={{ backgroundColor: '#FDF8EF' }}>
       <AnimatePresence>
@@ -141,7 +149,11 @@ export default function App() {
           {!crawl ? (
             <FoodCrawlForm onGenerate={handleGenerateCrawl} disabled={isGenerating} />
           ) : (
-            <CrawlItinerary crawl={crawl} onReset={handleReset} />
+            <CrawlItinerary
+              crawl={crawl}
+              onReset={handleReset}
+              onOrderOptimized={handleOrderOptimized}
+            />
           )}
         </div>
       </motion.div>
@@ -312,6 +324,8 @@ interface ApiRestaurant {
   lat: number | null;
   lng: number | null;
   priceLevel?: string;
+  /** Photo URL from Place Photos (New) when available */
+  image?: string | null;
 }
 
 const API_PRICE_LEVEL_TO_TIER: Record<string, BudgetTier> = {
@@ -339,7 +353,7 @@ function mapApiRestaurantsToStops(restaurants: ApiRestaurant[], params: CrawlPar
     duration: 45,
     address: r.address,
     dietaryOptions: params.dietary,
-    image: placeholderImage,
+    image: (r.image && r.image.trim()) ? r.image : placeholderImage,
     openTime: '09:00',
     closeTime: '22:00',
     lat: r.lat ?? undefined,
