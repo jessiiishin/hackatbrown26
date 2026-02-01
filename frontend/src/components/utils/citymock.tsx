@@ -402,6 +402,213 @@ export const cities: Record<string, Stop[]> = {
         openTime: '12:15',
         closeTime: '22:00'
       }
+    ],
+    'Seattle': [
+      {
+        id: '30',
+        name: 'Pike Place Market',
+        type: 'landmark',
+        description: 'Historic public market with local food and crafts',
+        price: 0,
+        duration: 45,
+        address: 'Pike Place',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800',
+        openTime: '09:00',
+        closeTime: '18:00'
+      },
+      {
+        id: '31',
+        name: 'Canlis',
+        type: 'restaurant',
+        cuisine: 'American',
+        description: 'Upscale Pacific Northwest fine dining',
+        price: 85,
+        duration: 120,
+        address: 'Queen Anne',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
+        openTime: '17:00',
+        closeTime: '22:00'
+      },
+      {
+        id: '32',
+        name: 'Space Needle',
+        type: 'landmark',
+        description: 'Iconic observation tower with city views',
+        price: 0,
+        duration: 60,
+        address: 'Seattle Center',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=800',
+        openTime: '10:00',
+        closeTime: '21:00'
+      },
+      {
+        id: '33',
+        name: 'Dick\'s Drive-In',
+        type: 'restaurant',
+        cuisine: 'American',
+        description: 'Seattle institution for burgers and shakes',
+        price: 8,
+        duration: 20,
+        address: 'Capitol Hill',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800',
+        openTime: '10:30',
+        closeTime: '02:00'
+      },
+      {
+        id: '34',
+        name: 'Fremont Troll',
+        type: 'landmark',
+        description: 'Public sculpture under the Aurora Bridge',
+        price: 0,
+        duration: 15,
+        address: 'Fremont',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
+        openTime: '00:00',
+        closeTime: '23:59'
+      }
+    ],
+    'Boston': [
+      {
+        id: '35',
+        name: 'Faneuil Hall',
+        type: 'landmark',
+        description: 'Historic marketplace and meeting hall',
+        price: 0,
+        duration: 45,
+        address: 'Downtown',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800',
+        openTime: '10:00',
+        closeTime: '21:00'
+      },
+      {
+        id: '36',
+        name: 'Neptune Oyster',
+        type: 'restaurant',
+        cuisine: 'Seafood',
+        description: 'Famous lobster rolls and raw bar',
+        price: 45,
+        duration: 60,
+        address: 'North End',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800',
+        openTime: '11:30',
+        closeTime: '22:00'
+      },
+      {
+        id: '37',
+        name: 'Freedom Trail',
+        type: 'landmark',
+        description: 'Historic path through Revolutionary War sites',
+        price: 0,
+        duration: 90,
+        address: 'Downtown',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800',
+        openTime: '00:00',
+        closeTime: '23:59'
+      },
+      {
+        id: '38',
+        name: 'Mike\'s Pastry',
+        type: 'restaurant',
+        cuisine: 'Bakery',
+        description: 'Legendary cannoli and Italian pastries',
+        price: 12,
+        duration: 25,
+        address: 'North End',
+        dietaryOptions: ['vegetarian'],
+        image: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=800',
+        openTime: '08:00',
+        closeTime: '22:00'
+      },
+      {
+        id: '39',
+        name: 'Fenway Park',
+        type: 'landmark',
+        description: 'Historic ballpark and home of the Red Sox',
+        price: 0,
+        duration: 60,
+        address: 'Fenway',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=800',
+        openTime: '09:00',
+        closeTime: '17:00'
+      }
+    ],
+    'Chicago': [
+      {
+        id: '40',
+        name: 'The Art Institute of Chicago',
+        type: 'landmark',
+        description: 'World-renowned art museum',
+        price: 0,
+        duration: 90,
+        address: 'Grant Park',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1549887534-1541e9326642?w=800',
+        openTime: '11:00',
+        closeTime: '17:00'
+      },
+      {
+        id: '41',
+        name: 'Lou Malnati\'s',
+        type: 'restaurant',
+        cuisine: 'Pizza',
+        description: 'Deep-dish Chicago pizza institution',
+        price: 18,
+        duration: 45,
+        address: 'River North',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800',
+        openTime: '11:00',
+        closeTime: '23:00'
+      },
+      {
+        id: '42',
+        name: 'Millennium Park',
+        type: 'landmark',
+        description: 'Home of the Cloud Gate sculpture',
+        price: 0,
+        duration: 45,
+        address: 'Loop',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800',
+        openTime: '06:00',
+        closeTime: '23:00'
+      },
+      {
+        id: '43',
+        name: 'Alinea',
+        type: 'restaurant',
+        cuisine: 'American',
+        description: 'Award-winning fine dining',
+        price: 75,
+        duration: 180,
+        address: 'Lincoln Park',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
+        openTime: '17:30',
+        closeTime: '22:00'
+      },
+      {
+        id: '44',
+        name: 'Navy Pier',
+        type: 'landmark',
+        description: 'Lakefront pier with rides and restaurants',
+        price: 0,
+        duration: 60,
+        address: 'Streeterville',
+        dietaryOptions: [],
+        image: 'https://images.unsplash.com/photo-1506929562872-bb421503ef21?w=800',
+        openTime: '10:00',
+        closeTime: '22:00'
+      }
     ]
   };
   
@@ -476,5 +683,24 @@ export const coordinates: Record<string, Record<string, { lat: number; lng: numb
     'Rome District 2': { lat: 41.8902, lng: 12.4922 },
     'Rome District 3': { lat: 41.8986, lng: 12.4769 },
     'Rome District 4': { lat: 41.9009, lng: 12.4833 }
+    },
+    'Seattle': {
+    'Pike Place': { lat: 47.6097, lng: -122.3425 },
+    'Queen Anne': { lat: 47.6354, lng: -122.3572 },
+    'Seattle Center': { lat: 47.6205, lng: -122.3492 },
+    'Capitol Hill': { lat: 47.6252, lng: -122.3211 },
+    'Fremont': { lat: 47.6522, lng: -122.3502 }
+    },
+    'Boston': {
+    'Downtown': { lat: 42.3587, lng: -71.0567 },
+    'North End': { lat: 42.3645, lng: -71.0542 },
+    'Fenway': { lat: 42.3467, lng: -71.0972 }
+    },
+    'Chicago': {
+    'Grant Park': { lat: 41.8796, lng: -87.6237 },
+    'River North': { lat: 41.8902, lng: -87.6342 },
+    'Loop': { lat: 41.8825, lng: -87.6244 },
+    'Lincoln Park': { lat: 41.9217, lng: -87.6528 },
+    'Streeterville': { lat: 41.8925, lng: -87.6126 }
     }
 };

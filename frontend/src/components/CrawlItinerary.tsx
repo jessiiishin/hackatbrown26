@@ -13,7 +13,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import type { Crawl, Stop } from "./types";
 import {
   PRICE_TIER_RANGE_DISPLAY,
-  formatCrawlPriceRange,
+  getTotalRangeUpper,
 } from "../utils/pricerangestuff";
 
 interface Props {
@@ -45,12 +45,16 @@ export function CrawlItinerary({ crawl, onReset, onOrderOptimized }: Props) {
   }, []);
 
   const handleDownload = () => {
+    const restaurantCount = crawl.stops.filter((s) => s.type === "restaurant").length;
+    const priceRangeText = crawl.budgetTier
+      ? `Food Funds: ${restaurantCount === 0 ? "Free" : getTotalRangeUpper(crawl.budgetTier, restaurantCount)} | ${PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label} per meal`
+      : `$${crawl.totalCost}`;
     const content = `
 MY FOOD CRAWL ITINERARY
 =====================
 
 Total Stops: ${crawl.stops.length}
-Price Range: ${crawl.budgetTier ? `${PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label} per meal • Total: ${formatCrawlPriceRange(crawl.budgetTier, crawl.stops.length)}` : `$${crawl.totalCost}`}
+Price Range: ${priceRangeText}
 Total Time: ${Math.floor(crawl.totalTime / 60)}h ${crawl.totalTime % 60}m
 
 STOPS:
@@ -135,23 +139,22 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           <div
             className="rounded-xl p-4 text-center"
             style={{
-              background:
-                "linear-gradient(to bottom right, #FEF3E2, #FDE8C9)",
+              backgroundColor: "#F59F00",
             }}
           >
             <MapPin
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#F59F00" }}
+              style={{ color: "#FFF6ED" }}
             />
             <div
               className="text-2xl font-bold"
-              style={{ color: "#242116" }}
+              style={{ color: "#FFF6ED" }}
             >
               {crawl.stops.length}
             </div>
             <div
               className="text-sm"
-              style={{ color: "#242116", opacity: 0.6 }}
+              style={{ color: "#FFF6ED"}}
             >
               Stops
             </div>
@@ -160,54 +163,75 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
             className="rounded-xl p-4 text-center"
             style={{
               background:
-                "linear-gradient(to bottom right, #F4F9E5, #E8F2D1)",
+                "linear-gradient(to bottom right, #82ab3b)",
             }}
           >
             <DollarSign
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#C1EA78" }}
+              style={{ color: "#FFF6ED" }}
             />
-            <div
-              className="text-2xl font-bold"
-              style={{ color: "#242116" }}
-            >
-              {crawl.budgetTier
-                ? formatCrawlPriceRange(
-                    crawl.budgetTier,
-                    crawl.stops.length
-                  )
-                : `$${crawl.totalCost}`}
-            </div>
-            <div
-              className="text-sm"
-              style={{ color: "#242116", opacity: 0.6 }}
-            >
-              {crawl.budgetTier
-                ? PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label + " per meal"
-                : "Total Cost"}
-            </div>
+            {crawl.budgetTier ? (
+              <>
+                <div
+                  className="text-lg font-bold"
+                  style={{ color: "#FFF6ED" }}
+                >
+                  Food Funds: {(() => {
+                    const restaurantCount = crawl.stops.filter(
+                      (s) => s.type === "restaurant"
+                    ).length;
+                    if (restaurantCount === 0)
+                      return "Free";
+                    return getTotalRangeUpper(
+                      crawl.budgetTier,
+                      restaurantCount
+                    );
+                  })()}
+                </div>
+                <div
+                  className="text-sm mt-1"
+                  style={{ color: "#FFF6ED" }}
+                >
+                  {PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label} per meal
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className="text-2xl font-bold"
+                  style={{ color: "#242116" }}
+                >
+                  ${crawl.totalCost}
+                </div>
+                <div
+                  className="text-sm"
+                  style={{ color: "#242116", opacity: 0.6 }}
+                >
+                  Total Cost
+                </div>
+              </>
+            )}
           </div>
           <div
             className="rounded-xl p-4 text-center"
             style={{
-              background:
-                "linear-gradient(to bottom right, #FEF3E2, #E8F2D1)",
+              backgroundColor: "#F59F00",
             }}
           >
             <Clock
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#C1EA78" }}
+              style={{ color: "#FFF6ED" }}
             />
             <div
               className="text-2xl font-bold"
-              style={{ color: "#242116" }}
+              style={{ color: "#FFF6ED" }}
             >
               {Math.floor(crawl.totalTime / 60)}h{" "}
               {crawl.totalTime % 60}m
             </div>
             <div
               className="text-sm"
-              style={{ color: "#242116", opacity: 0.6 }}
+              style={{ color: "#FFF6ED" }}
             >
               Duration
             </div>
@@ -394,78 +418,27 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
                   </div>
                   <div className="flex items-center gap-2 text-gray-500">
                     <Clock className="w-4 h-4" />
-                    {stop.duration} minutes
+                    {stop.duration} min at stop
                   </div>
-                </div>
-
-                {stop.dietaryOptions.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2 ml-16">
-                    {stop.dietaryOptions.map((option) => (
-                      <span
-                        key={option}
-                        className="px-3 py-1 rounded-full text-xs font-medium capitalize"
-                        style={{
-                          backgroundColor: "#FFF8E1",
-                          color: "#F57C00",
-                        }}
-                      >
-                        {option}
+                  <div className="flex items-center gap-2 text-gray-500">
+                    {index === 0 ? (
+                      <span>ETA: 0 min (starting here)</span>
+                    ) : (
+                      <span>
+                        ETA: ~{crawl.stops[index - 1].walkingMinutesToNext ?? "?"} min walk from previous
                       </span>
-                    ))}
+                    )}
                   </div>
-                )}
+                  {index < crawl.stops.length - 1 && stop.walkingMinutesToNext != null && (
+                    <div className="flex items-center gap-2 text-gray-500">
+                      <span>~{stop.walkingMinutesToNext} min walk to next</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Footer */}
-      <div
-        className="mt-8 rounded-2xl p-6 text-white text-center"
-        style={{
-          background:
-            "linear-gradient(to right, #F59F00, #C1EA78)",
-        }}
-      >
-        <h3 className="text-2xl font-bold mb-2">
-          Ready to explore?
-        </h3>
-        <p className="mb-4" style={{ opacity: 0.9 }}>
-          Save this itinerary and start your culinary adventure!
-        </p>
-        <div className="flex justify-center gap-4">
-          <button
-            onClick={handleDownload}
-            className="px-6 py-3 rounded-xl font-semibold transition-colors"
-            style={{
-              backgroundColor: "white",
-              color: "#F59F00",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor =
-                "#FDF8EF")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "white")
-            }
-          >
-            Download Itinerary
-          </button>
-          <button
-            onClick={onReset}
-            className="px-6 py-3 rounded-xl font-semibold text-white transition-opacity"
-            style={{ backgroundColor: "#D97706" }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.opacity = "0.9")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.opacity = "1")
-            }
-          >
-            Plan Another Crawl
-          </button>
-        </div>
       </div>
     </div>
   );

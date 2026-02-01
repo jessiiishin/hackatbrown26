@@ -87,13 +87,10 @@ export function LoadingScreen() {
             repeat: Infinity, 
             ease: "easeInOut" 
           }}
-          className="p-8 rounded-full mb-6 bg-white shadow-xl flex items-center justify-center"
-          style={{ 
-            boxShadow: '0 20px 40px rgba(245, 159, 0, 0.15)',
-            border: '2px solid #F59F00'
-          }}
+          className="flex items-center justify-center"
+          style={{ width: '7rem', height: '7rem'}}
         >
-          <Utensils className="w-16 h-16" style={{ color: '#F59F00' }} />
+          <img src="/munch.png" alt="Munchy" className="w-16 h-16" />
         </motion.div>
 
         <motion.h1 
@@ -102,7 +99,7 @@ export function LoadingScreen() {
           className="text-6xl font-bold tracking-tighter" 
           style={{ color: '#242116' }}
         >
-          Munchy
+          Munchy Munchy
         </motion.h1>
         
         <motion.p 
