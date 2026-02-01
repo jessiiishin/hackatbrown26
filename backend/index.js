@@ -2,11 +2,13 @@
 
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(bodyParser.json());
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3000'] }));
 
 // Placeholder config for API keys
 const config = require('./config');
@@ -37,6 +39,30 @@ app.post('/adjustCrawl', async (req, res) => {
 app.get('/places', (req, res) => {
   // Placeholder: Logic to fetch places based on filters
   res.json({ message: 'Places fetched (placeholder)', data: [] });
+});
+
+// POST /landmarks
+app.post('/landmarks', async (req, res) => {
+  console.log("LANDMARKS ENDPOINT HIT", req.body);
+  /*
+    Expects body: {
+      city: string,
+      visitDate: string (YYYY-MM-DD),
+      timeStart: string (HHMM),
+      timeEnd: string (HHMM),
+      budget: number (0-4, optional)
+    }
+  */
+  try {
+    const { city, visitDate, timeStart, timeEnd, budget } = req.body;
+    const { getEligibleLandmarks } = require('./src/config/utils/landmarks');
+    console.log("this is a log");
+    const results = await getEligibleLandmarks({ city, visitDate, timeStart, timeEnd, budget });
+    console.log(results);
+    res.json({ landmarks: results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Placeholder: Logging user adjustments
