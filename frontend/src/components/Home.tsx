@@ -209,7 +209,7 @@ export default function Home() {
             className="text-7xl font-bold tracking-tighter"
             style={{ color: '#242116', fontFamily: 'Parkinsans' }}
           >
-            Munchy
+            Munchy Munchy
           </h1>
           <p className="text-xl max-w-2xl mx-auto opacity-80" style={{ color: '#242116' }}>
             Curating personalized food crawls, one chapter at a time.
