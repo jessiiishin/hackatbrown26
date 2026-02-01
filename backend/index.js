@@ -222,14 +222,17 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
 
 /**
  * Calls Google Places API (Text Search) for 5 landmarks in city.
- * Returns array of { id, name, address, lat, lng }.
+ * Fetches a unique photo per landmark via Place Photos API (same as restaurants).
+ * Returns array of { id, name, address, lat, lng, image }.
  */
 async function fetchLandmarksFromPlacesAPI(city, apiKey) {
+  const locationRestriction = await geocodeCity(city, apiKey);
   const url = 'https://places.googleapis.com/v1/places:searchText';
   const body = {
     textQuery: `landmarks in ${city}`,
     includedType: 'tourist_attraction',
     pageSize: 5,
+    ...(locationRestriction && { locationRestriction: { rectangle: locationRestriction } }),
   };
 
   const fieldMask = [
@@ -237,6 +240,7 @@ async function fetchLandmarksFromPlacesAPI(city, apiKey) {
     'places.displayName',
     'places.formattedAddress',
     'places.location',
+    'places.photos',
   ].join(',');
 
   const response = await fetch(url, {
@@ -257,13 +261,34 @@ async function fetchLandmarksFromPlacesAPI(city, apiKey) {
   const data = await response.json();
   const places = data.places || [];
 
-  return places.map((p) => ({
-    id: p.id || null,
-    name: (p.displayName && p.displayName.text) || 'Unknown',
-    address: p.formattedAddress || '',
-    lat: (p.location && p.location.latitude) ?? null,
-    lng: (p.location && p.location.longitude) ?? null,
-  }));
+  const results = await Promise.all(
+    places.map(async (p) => {
+      let image = null;
+      const photoName = p.photos && p.photos[0] && p.photos[0].name;
+      if (photoName) {
+        try {
+          const photoUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&maxHeightPx=600&skipHttpRedirect=true&key=${apiKey}`;
+          const photoRes = await fetch(photoUrl);
+          if (photoRes.ok) {
+            const photoData = await photoRes.json();
+            if (photoData.photoUri) image = photoData.photoUri;
+          }
+        } catch (e) {
+          // keep image null, frontend will use placeholder
+        }
+      }
+      return {
+        id: p.id || null,
+        name: (p.displayName && p.displayName.text) || 'Unknown',
+        address: p.formattedAddress || '',
+        lat: (p.location && p.location.latitude) ?? null,
+        lng: (p.location && p.location.longitude) ?? null,
+        image,
+      };
+    })
+  );
+
+  return results;
 }
 
 /**
