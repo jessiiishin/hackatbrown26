@@ -1,4 +1,4 @@
-import { BookOpen, ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 
 interface StartPageProps {
     setStep: (step: number) => void;
