@@ -85,6 +85,36 @@ app.get('/places/restaurants', async (req, res) => {
 });
 
 /**
+ * GET /places/landmarks?city=New+York
+ * Returns 5 landmarks from Google Places API for the given city.
+ */
+app.get('/places/landmarks', async (req, res) => {
+  const city = (req.query.city || '').trim();
+
+  if (!city) {
+    return res.status(400).json({ error: 'Query parameter "city" is required' });
+  }
+
+  const apiKey = config.GOOGLE_PLACES_API_KEY;
+  if (!apiKey || apiKey.startsWith('YOUR_')) {
+    return res.status(503).json({
+      error: 'Google Places API key is not configured. Set GOOGLE_PLACES_API_KEY in backend .env',
+    });
+  }
+
+  try {
+    const landmarks = await fetchLandmarksFromPlacesAPI(city, apiKey);
+    return res.json({ landmarks });
+  } catch (err) {
+    console.error('Places API error:', err.message);
+    return res.status(502).json({
+      error: 'Failed to fetch landmarks from Google Places',
+      details: err.message,
+    });
+  }
+});
+
+/**
  * Calls Google Places API (Text Search) for 5 restaurants in city with given price tier.
  * Returns array of { id, name, address, lat, lng, priceLevel }.
  */
@@ -143,6 +173,52 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
     lat: (p.location && p.location.latitude) ?? null,
     lng: (p.location && p.location.longitude) ?? null,
     priceLevel: p.priceLevel || budgetTier,
+  }));
+}
+
+/**
+ * Calls Google Places API (Text Search) for 5 landmarks in city.
+ * Returns array of { id, name, address, lat, lng }.
+ */
+async function fetchLandmarksFromPlacesAPI(city, apiKey) {
+  const url = 'https://places.googleapis.com/v1/places:searchText';
+  const body = {
+    textQuery: `landmarks in ${city}`,
+    includedType: 'tourist_attraction',
+    pageSize: 5,
+  };
+
+  const fieldMask = [
+    'places.id',
+    'places.displayName',
+    'places.formattedAddress',
+    'places.location',
+  ].join(',');
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': fieldMask,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Places API ${response.status}: ${text}`);
+  }
+
+  const data = await response.json();
+  const places = data.places || [];
+
+  return places.map((p) => ({
+    id: p.id || null,
+    name: (p.displayName && p.displayName.text) || 'Unknown',
+    address: p.formattedAddress || '',
+    lat: (p.location && p.location.latitude) ?? null,
+    lng: (p.location && p.location.longitude) ?? null,
   }));
 }
 
