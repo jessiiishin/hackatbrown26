@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { MapPin, DollarSign, Clock, Apple, ChevronRight, ChevronLeft } from 'lucide-react';
-import type { CrawlParams } from './types';
+import type { CrawlParams, BudgetTier } from './types';
+import { BUDGET_TIERS } from '../utils/pricerangestuff'
 
 interface Props {
   setStep: (step: number) => void;
@@ -33,8 +34,8 @@ interface TimeComponentProps {
 }
 
 interface BudgetProps {
-  budget: number;
-  handleBudgetChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  budgetTier: BudgetTier;
+  setBudgetTier: (tier: BudgetTier) => void;
 }
 
 interface DietaryProp {
@@ -54,7 +55,7 @@ const DIETARY_OPTIONS = [
 export default function FoodCrawlForm(props: Props) {
   const [city, setCity] = useState('');
   const [isCityDropdown, setIsCityDropdown] = useState(false);
-  const [budget, setBudget] = useState(50);
+  const [budget, setBudget] = useState<BudgetTier>('$');
   const [startHour, setStartHour] = useState('09');
   const [startMinute, setStartMinute] = useState('00');
   const [startPeriod, setStartPeriod] = useState('AM');
@@ -85,11 +86,6 @@ export default function FoodCrawlForm(props: Props) {
 
   const toggleDietary = (value: string) => {
     setDietary(prev => prev.includes(value) ? prev.filter(d => d !== value) : [...prev, value]);
-  };
-
-  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value) || 0;
-    setBudget(Math.max(0, Math.min(1000, value)));
   };
 
   return (
@@ -125,8 +121,8 @@ export default function FoodCrawlForm(props: Props) {
 
           <div>
             <BudgetComponent
-              budget={budget}
-              handleBudgetChange={handleBudgetChange}
+              budgetTier={budget}
+              setBudgetTier={setBudget}
             />
           </div>
         </div>
@@ -300,17 +296,24 @@ function BudgetComponent(props: BudgetProps) {
     <div>
       <label className="flex items-center gap-2 mb-3 font-medium" style={{ color: '#242116' }}>
         <DollarSign className="w-5 h-5" style={{ color: '#C1EA78' }} />
-        Budget
+        Price Tier
       </label>
-      <div className="relative">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
-        <input
-          type="number"
-          value={props.budget}
-          onChange={props.handleBudgetChange}
-          className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none transition-colors"
-          style={{ borderColor: props.budget > 0 ? '#C1EA78' : '#e5e7eb' }}
-        />
+      <div className="flex flex-wrap gap-2">
+        {BUDGET_TIERS.map((tier) => (
+          <button
+            key={tier}
+            type="button"
+            onClick={() => props.setBudgetTier(tier)}
+            className="px-4 py-3 rounded-xl font-bold text-lg transition-all border-2"
+            style={{
+              backgroundColor: props.budgetTier === tier ? '#F59F00' : '#fff',
+              color: props.budgetTier === tier ? '#FDF8EF' : '#242116',
+              borderColor: props.budgetTier === tier ? '#F59F00' : '#e5e7eb',
+            }}
+          >
+            {tier}
+          </button>
+        ))}
       </div>
     </div>
   );
