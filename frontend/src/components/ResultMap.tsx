@@ -101,7 +101,8 @@ export function ResultMap({ stops, onOrderOptimized }: Props) {
 
     const addMarkersAndRoute = (
       displayStops: Stop[],
-      displayPositions: { lat: number; lng: number }[]
+      displayPositions: { lat: number; lng: number }[],
+      reportWalkingTimes: (stopsWithWalking: Stop[]) => void
     ) => {
       const bounds = new google.maps.LatLngBounds();
       displayPositions.forEach((pos) => bounds.extend(pos));
@@ -205,8 +206,17 @@ export function ResultMap({ stops, onOrderOptimized }: Props) {
             result: google.maps.DirectionsResult | null,
             status: google.maps.DirectionsStatus
           ) => {
-            if (status === google.maps.DirectionsStatus.OK && result) {
+            if (status === google.maps.DirectionsStatus.OK && result?.routes?.[0]?.legs) {
               directionsRenderer.setDirections(result);
+              const legs = result.routes[0].legs;
+              const stopsWithWalking: Stop[] = displayStops.map((stop, i) => ({
+                ...stop,
+                walkingMinutesToNext:
+                  i < legs.length && legs[i].duration?.value != null
+                    ? Math.round(legs[i].duration!.value / 60)
+                    : undefined,
+              }));
+              reportWalkingTimes(stopsWithWalking);
             } else {
               new google.maps.Polyline({
                 path: displayPositions,
@@ -216,9 +226,12 @@ export function ResultMap({ stops, onOrderOptimized }: Props) {
                 strokeWeight: 3,
                 map,
               });
+              reportWalkingTimes(displayStops);
             }
           }
         );
+      } else {
+        reportWalkingTimes(displayStops);
       }
     };
 
@@ -256,15 +269,18 @@ export function ResultMap({ stops, onOrderOptimized }: Props) {
             if (orderChanged) {
               displayStops = optimalOrder.map((i) => stops[i]);
               displayPositions = optimalOrder.map((i) => positions[i]);
-              onOrderOptimized?.(displayStops);
             }
           }
 
-          addMarkersAndRoute(displayStops, displayPositions);
+          addMarkersAndRoute(displayStops, displayPositions, (stopsWithWalking) => {
+            onOrderOptimized?.(stopsWithWalking);
+          });
         }
       );
     } else {
-      addMarkersAndRoute(stops, positions);
+      addMarkersAndRoute(stops, positions, (stopsWithWalking) => {
+        onOrderOptimized?.(stopsWithWalking);
+      });
     }
   }, [stops, onOrderOptimized]);
 

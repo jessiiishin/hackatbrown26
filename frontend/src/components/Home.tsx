@@ -182,11 +182,23 @@ export default function Home() {
   };
 
   const handleOrderOptimized = useCallback((orderedStops: Stop[]) => {
-    setCrawl((prev) =>
-      prev
-        ? { ...prev, stops: orderedStops, route: generateRoute(orderedStops) }
-        : null
-    );
+    setCrawl((prev) => {
+      if (!prev) return null;
+      const sameOrder =
+        prev.stops.length === orderedStops.length &&
+        prev.stops.every((s, i) => s.id === orderedStops[i].id);
+      const sameWalking =
+        sameOrder &&
+        prev.stops.every(
+          (s, i) => s.walkingMinutesToNext === orderedStops[i].walkingMinutesToNext
+        );
+      if (sameWalking) return prev;
+      return {
+        ...prev,
+        stops: orderedStops,
+        route: generateRoute(orderedStops),
+      };
+    });
   }, []);
 
   return (
