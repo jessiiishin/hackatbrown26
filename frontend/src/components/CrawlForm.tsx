@@ -72,12 +72,12 @@ export default function FoodCrawlForm(props: Props) {
 
   return (
     <div
-      className="w-full h-full p-6 sm:p-12 origin-left overflow-visible flex flex-col"
+      className="w-full h-full p-6 sm:p-12 origin-left overflow-visible flex flex-col items-center"
     >
-      <div className="flex items-center gap-4 mb-8 w-full shrink-0">
+      <div className="relative flex items-center justify-center mb-8 w-full shrink-0">
         <button
           onClick={() => props.setStep(0)}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors absolute left-0"
         >
           <ChevronLeft className="w-6 h-6 text-gray-400" />
         </button>
@@ -89,21 +89,25 @@ export default function FoodCrawlForm(props: Props) {
         </h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl flex-1 overflow-y-auto">
+      <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl flex-1 overflow-y-auto flex flex-col items-center w-full">
         {/* City Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="overflow-visible">
-            <CityComponent 
-              city={city}
-              setCity={setCity}
-              isCityDropdown={isCityDropdown}
-              setIsCityDropdown={setIsCityDropdown}
-            />
+        <div className="w-full space-y-8">
+          <div className="overflow-visible flex gap-8">
+            <div className="flex-1">
+              <CityComponent 
+                city={city}
+                setCity={setCity}
+                isCityDropdown={isCityDropdown}
+                setIsCityDropdown={setIsCityDropdown}
+              />
+            </div>
 
-            <BudgetComponent
-              budgetTier={budget}
-              setBudgetTier={setBudget}
-            />
+            <div className="flex-1">
+              <BudgetComponent
+                budgetTier={budget}
+                setBudgetTier={setBudget}
+              />
+            </div>
           </div>
 
           <TimeComponent
@@ -125,7 +129,7 @@ export default function FoodCrawlForm(props: Props) {
         </div>
 
         {/* Submit */}
-        <div className="pt-4">
+        <div className="pt-4 w-full">
           <button
             type="submit"
             disabled={!city}
