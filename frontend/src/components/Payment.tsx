@@ -106,7 +106,7 @@ export default function Payment({ setStep }: PaymentProps) {
                     <span className="text-4xl font-bold mx-8" style={{ color: '#F59F00' }}>
                       ${plan.price}
                     </span>
-                    <span className="text-gray-500"> total</span>
+                    <span className="text-gray-500">total</span>
                   </div>
                   <span className="text-sm text-gray-500">
                     ${(plan.price / plan.tickets).toFixed(2)} per pass
