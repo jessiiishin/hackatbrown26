@@ -7,23 +7,33 @@ import {
   Download,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { CrawlMap, loadGoogleMapsScript } from "./CrawlMap";
-import type { Crawl } from "../App";
+import { ResultMap } from "./ResultMap";
+import { loadGoogleMapsScript } from '../utils/googleMapsLoader'
+import { ImageWithFallback } from "./figma/ImageWithFallback";
+import type { Crawl, Stop } from "./types";
+import {
+  PRICE_TIER_RANGE_DISPLAY,
+  formatCrawlPriceRange,
+} from "../utils/pricerangestuff";
 
 interface Props {
   crawl: Crawl;
   onReset: () => void;
+  /** Called when the map optimizes stop order for shortest walking path; parent can update crawl.stops. */
+  onOrderOptimized?: (orderedStops: Stop[]) => void;
 }
 
-const GOOGLE_MAPS_API_KEY =
-  "AIzaSyDPxDaN6zphc0lhM3UcmpNQwP62m6s2IMQ";
-
-export function CrawlItinerary({ crawl, onReset }: Props) {
+export function CrawlItinerary({ crawl, onReset, onOrderOptimized }: Props) {
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
+  const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  if (!key) {
+    throw Error("Missing api key google")
+  }
+
   useEffect(() => {
-    loadGoogleMapsScript(GOOGLE_MAPS_API_KEY)
+    loadGoogleMapsScript(key)
       .then(() => {
         setMapsLoaded(true);
         setMapError(null);
@@ -40,7 +50,7 @@ MY FOOD CRAWL ITINERARY
 =====================
 
 Total Stops: ${crawl.stops.length}
-Total Budget: $${crawl.totalCost}
+Price Range: ${crawl.budgetTier ? `${PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label} per meal • Total: ${formatCrawlPriceRange(crawl.budgetTier, crawl.stops.length)}` : `$${crawl.totalCost}`}
 Total Time: ${Math.floor(crawl.totalTime / 60)}h ${crawl.totalTime % 60}m
 
 STOPS:
@@ -155,19 +165,26 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           >
             <DollarSign
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#D1E892" }}
+              style={{ color: "#C1EA78" }}
             />
             <div
               className="text-2xl font-bold"
               style={{ color: "#242116" }}
             >
-              ${crawl.totalCost}
+              {crawl.budgetTier
+                ? formatCrawlPriceRange(
+                    crawl.budgetTier,
+                    crawl.stops.length
+                  )
+                : `$${crawl.totalCost}`}
             </div>
             <div
               className="text-sm"
               style={{ color: "#242116", opacity: 0.6 }}
             >
-              Total Cost
+              {crawl.budgetTier
+                ? PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label + " per meal"
+                : "Total Cost"}
             </div>
           </div>
           <div
@@ -179,7 +196,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           >
             <Clock
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#D1E892" }}
+              style={{ color: "#C1EA78" }}
             />
             <div
               className="text-2xl font-bold"
@@ -217,7 +234,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           </p>
         </div>
         {mapsLoaded ? (
-          <CrawlMap stops={crawl.stops} />
+          <ResultMap stops={crawl.stops} onOrderOptimized={onOrderOptimized} />
         ) : mapError ? (
           <div className="w-full h-[500px] bg-red-50 rounded-2xl flex items-center justify-center border-2 border-red-200">
             <div className="text-center px-8">
@@ -281,9 +298,9 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
             }}
           >
             <div className="flex gap-6 p-6">
-              {/* Image */}
+              {/* Image (Google Place photo or placeholder) */}
               <div className="flex-shrink-0">
-                <img
+                <ImageWithFallback
                   src={stop.image}
                   alt={stop.name}
                   className="w-48 h-48 object-cover rounded-xl"
@@ -408,7 +425,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
         className="mt-8 rounded-2xl p-6 text-white text-center"
         style={{
           background:
-            "linear-gradient(to right, #F59F00, #D1E892)",
+            "linear-gradient(to right, #F59F00, #C1EA78)",
         }}
       >
         <h3 className="text-2xl font-bold mb-2">
