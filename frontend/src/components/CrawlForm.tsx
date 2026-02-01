@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
-import { MapPin, DollarSign, Clock, Apple, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { MapPin, DollarSign, Clock, ChevronRight, ChevronLeft } from 'lucide-react';
 import type { CrawlParams, BudgetTier } from './types';
-import { BUDGET_TIERS } from '../utils/pricerangestuff'
+import { BUDGET_TIERS } from '../utils/pricerangestuff';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const AUTOCOMPLETE_DEBOUNCE_MS = 300;
 
 interface Props {
   setStep: (step: number) => void;
@@ -38,20 +40,6 @@ interface BudgetProps {
   setBudgetTier: (tier: BudgetTier) => void;
 }
 
-interface DietaryProp {
-  toggleDietary: (value: string) => void;
-  dietary: string[];
-}
-
-const CITIES = ['New York', 'San Francisco', 'Tokyo', 'Paris'];
-const DIETARY_OPTIONS = [
-  { value: 'vegetarian', label: 'Vegetarian' },
-  { value: 'vegan', label: 'Vegan' },
-  { value: 'gluten-free', label: 'Gluten-Free' },
-  { value: 'pescatarian', label: 'Pescatarian' },
-  { value: 'halal', label: 'Halal' },
-];
-
 export default function FoodCrawlForm(props: Props) {
   const [city, setCity] = useState('');
   const [isCityDropdown, setIsCityDropdown] = useState(false);
@@ -62,7 +50,6 @@ export default function FoodCrawlForm(props: Props) {
   const [endHour, setEndHour] = useState('05');
   const [endMinute, setEndMinute] = useState('00');
   const [endPeriod, setEndPeriod] = useState('PM');
-  const [dietary, setDietary] = useState<string[]>([]);
   const [isClicked, setIsClicked] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -75,8 +62,7 @@ export default function FoodCrawlForm(props: Props) {
         city, 
         budget, 
         startTime: `${startHour}:${startMinute} ${startPeriod}`, 
-        endTime: `${endHour}:${endMinute} ${endPeriod}`, 
-        dietary 
+        endTime: `${endHour}:${endMinute} ${endPeriod}`,
       });
     }, 200);
   };
@@ -84,52 +70,47 @@ export default function FoodCrawlForm(props: Props) {
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
   const minutes = ['00', '15', '30', '45'];
 
-  const toggleDietary = (value: string) => {
-    setDietary(prev => prev.includes(value) ? prev.filter(d => d !== value) : [...prev, value]);
-  };
-
   return (
-    <motion.div
-      key="step1"
-      initial={{ rotateY: 110, opacity: 0 }}
-      animate={{ rotateY: 0, opacity: 1 }}
-      exit={{ rotateY: -110, opacity: 0 }}
-      transition={{ duration: 0.8, ease: [0.645, 0.045, 0.355, 1] }}
-      className="w-full h-full p-6 sm:p-12 origin-left h-full"
+    <div
+      className="w-full h-full p-6 sm:p-12 origin-left overflow-visible flex flex-col items-center"
     >
-      <div className="flex items-center gap-4 mb-8">
-        <button 
+      <div className="relative flex items-center justify-center mb-8 w-full shrink-0">
+        <button
           onClick={() => props.setStep(0)}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors absolute left-0"
         >
           <ChevronLeft className="w-6 h-6 text-gray-400" />
         </button>
-        <h2 className="text-3xl font-bold" style={{ color: '#242116', fontFamily: 'Parkinsans' }}>Chapter Setup</h2>
+        <h2
+          className="text-3xl font-bold"
+          style={{ color: '#242116', fontFamily: 'Parkinsans' }}
+        >
+          Chapter Setup
+        </h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl">
+      <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl flex-1 overflow-y-auto flex flex-col items-center w-full">
         {/* City Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <CityComponent 
-              city={city}
-              setCity={setCity}
-              isCityDropdown={isCityDropdown}
-              setIsCityDropdown={setIsCityDropdown}
-            />
+        <div className="w-full space-y-8">
+          <div className="overflow-visible flex gap-8">
+            <div className="flex-1">
+              <CityComponent 
+                city={city}
+                setCity={setCity}
+                isCityDropdown={isCityDropdown}
+                setIsCityDropdown={setIsCityDropdown}
+              />
+            </div>
+
+            <div className="flex-1">
+              <BudgetComponent
+                budgetTier={budget}
+                setBudgetTier={setBudget}
+              />
+            </div>
           </div>
 
-          <div>
-            <BudgetComponent
-              budgetTier={budget}
-              setBudgetTier={setBudget}
-            />
-          </div>
-        </div>
-
-        {/* Time Window */}
-        <div>
-          <TimeComponent 
+          <TimeComponent
             startHour={startHour}
             setStartHour={setStartHour}
             startMinute={startMinute}
@@ -147,40 +128,65 @@ export default function FoodCrawlForm(props: Props) {
           />
         </div>
 
-        {/* Dietary */}
-        <div>
-          <DietaryComponent 
-            toggleDietary={toggleDietary}
-            dietary={dietary}/>
-        </div>
-
         {/* Submit */}
-        <div className="pt-4">
+        <div className="pt-4 w-full">
           <button
             type="submit"
             disabled={!city}
-            className="w-full py-5 rounded-2xl font-bold text-xl transition-all relative overflow-hidden group shadow-lg"
+            className="w-full py-5 rounded-2xl font-bold text-xl transition-all shadow-lg"
             style={{
               backgroundColor: city ? '#F59F00' : '#f3f4f6',
               color: city ? '#FDF8EF' : '#a1a1aa',
               cursor: city ? 'pointer' : 'not-allowed',
-              transform: isClicked ? 'scale(0.96)' : 'scale(1)'
+              transform: isClicked ? 'scale(0.96)' : 'scale(1)',
             }}
           >
-            <span className="relative z-10 flex items-center justify-center gap-2">
+            <span className="flex items-center justify-center gap-2">
               {city ? 'Write Chapter' : 'Pick a City'}
               {city && <ChevronRight className="w-6 h-6" />}
             </span>
           </button>
         </div>
       </form>
-    </motion.div>
+    </div>
   );
 }
 
 function CityComponent(props: CityProps) {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const query = props.city.trim();
+
+  useEffect(() => {
+    if (!query) {
+      setSuggestions([]);
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      setLoading(true);
+      const url = `${API_BASE}/places/autocomplete?input=${encodeURIComponent(query)}`;
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => {
+          const list = Array.isArray(data.suggestions) ? data.suggestions : [];
+          setSuggestions(list);
+        })
+        .catch(() => setSuggestions([]))
+        .finally(() => setLoading(false));
+    }, AUTOCOMPLETE_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query]);
+
+  const hasMatches = suggestions.length > 0;
+
   return (
-    <div>
+    <div className="relative">
       <label className="flex items-center gap-2 mb-3 font-medium" style={{ color: '#242116' }}>
         <MapPin className="w-5 h-5" style={{ color: '#F59F00' }} />
         Where to?
@@ -191,32 +197,39 @@ function CityComponent(props: CityProps) {
           value={props.city}
           onChange={(e) => props.setCity(e.target.value)}
           onFocus={() => props.setIsCityDropdown(true)}
-          placeholder="Search any city..."
+          onBlur={() => setTimeout(() => props.setIsCityDropdown(false), 200)}
+          placeholder="Type a city name..."
           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none transition-colors bg-white"
           style={{ borderColor: props.city ? '#F59F00' : '#e5e7eb' }}
+          autoComplete="off"
         />
         {props.isCityDropdown && (
-          <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-            {['Tokyo', 'Paris', 'New York', 'London', 'Bangkok', 'Rome', 'Seoul', 'Mexico City'].map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                onClick={() => {
-                  props.setCity(suggestion);
-                  props.setIsCityDropdown(false);
-                }}
-                className="w-full text-left px-4 py-3 hover:bg-[#F59F00]/5 transition-colors text-sm border-b border-gray-50 last:border-0"
-              >
-                {suggestion}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => props.setIsCityDropdown(false)}
-              className="w-full text-center px-4 py-2 bg-gray-50 text-[10px] uppercase tracking-widest text-gray-400 font-bold hover:text-[#F59F00]"
-            >
-              Close
-            </button>
+          <div
+            className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-56 overflow-y-auto"
+            style={{ zIndex: 9999 }}
+          >
+            {loading ? (
+              <div className="px-4 py-3 text-sm text-gray-500">Searching cities…</div>
+            ) : hasMatches ? (
+              suggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    props.setCity(suggestion);
+                    props.setIsCityDropdown(false);
+                  }}
+                  className="w-full text-left px-4 py-3 hover:bg-[#F59F00]/10 transition-colors text-sm border-b border-gray-50 last:border-0"
+                >
+                  {suggestion}
+                </button>
+              ))
+            ) : (
+              <div className="px-4 py-3 text-sm text-gray-500">
+                No matching cities. You can still type any city and search.
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -258,34 +271,6 @@ function TimeComponent(props: TimeComponentProps) {
             <option value="PM">PM</option>
           </select>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function DietaryComponent(props: DietaryProp) {
-  return (
-    <div>
-      <label className="flex items-center gap-2 mb-4 font-medium" style={{ color: '#242116' }}>
-        <Apple className="w-5 h-5" style={{ color: '#F59F00' }} />
-        Dietary Notes
-      </label>
-      <div className="flex flex-wrap gap-2">
-        {DIETARY_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => props.toggleDietary(opt.value)}
-            className="px-4 py-2 rounded-full text-sm font-medium transition-all"
-            style={{
-              backgroundColor: props.dietary.includes(opt.value) ? '#F59F00' : '#fff',
-              color: props.dietary.includes(opt.value) ? '#fff' : '#242116',
-              border: props.dietary.includes(opt.value) ? '2px solid #F59F00' : '2px solid #f3f4f6'
-            }}
-          >
-            {opt.label}
-          </button>
-        ))}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [crawlError, setCrawlError] = useState<string | null>(null);
+  const [bookStep, setBookStep] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 2500);
@@ -86,13 +87,41 @@ export default function Home() {
     }
   };
 
-  // Handler to fetch both restaurants and landmarks and display as a combined crawl
+  // Handler to fetch both restaurants and landmarks: use time-constrained itinerary (walking ETA + estimated visit time <= user window)
   const handleGenerateCombinedCrawl = async (params: CrawlParams) => {
     setCrawl(null);
     setCrawlError(null);
     setIsGenerating(true);
     try {
-      // Fetch restaurants
+      const itineraryRes = await fetch(`${API_BASE}/itinerary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          city: params.city,
+          budgetTier: params.budget,
+          startTime: params.startTime,
+          endTime: params.endTime,
+        }),
+      });
+      const itineraryData = await itineraryRes.json().catch(() => ({}));
+
+      if (itineraryRes.ok && itineraryData.stops && itineraryData.stops.length > 0) {
+        const stops = itineraryData.stops.map((s: Stop) => ({
+          ...s,
+          dietaryOptions: s.dietaryOptions ?? [],
+        }));
+        const totalCost = stops.reduce((sum, s) => sum + s.price, 0);
+        setCrawl({
+          stops,
+          totalCost,
+          totalTime: itineraryData.totalTime ?? stops.reduce((sum, s) => sum + s.duration, 0),
+          route: itineraryData.route ?? generateRoute(stops),
+          budgetTier: params.budget,
+        });
+        return;
+      }
+
+      // Fallback: fetch restaurants and landmarks separately (no time constraint)
       const restUrl = `${API_BASE}/places/restaurants?city=${encodeURIComponent(params.city)}&budgetTier=${encodeURIComponent(params.budget)}`;
       const restRes = await fetch(restUrl);
       if (!restRes.ok) {
@@ -102,7 +131,6 @@ export default function Home() {
       const restData = await restRes.json();
       const restaurantStops = mapApiRestaurantsToStops(restData.restaurants || [], params);
 
-      // Fetch landmarks
       const landUrl = `${API_BASE}/places/landmarks?city=${encodeURIComponent(params.city)}`;
       const landRes = await fetch(landUrl);
       if (!landRes.ok) {
@@ -124,16 +152,13 @@ export default function Home() {
         closeTime: '',
         lat: l.lat,
         lng: l.lng,
-        color: 'purple',
       }));
 
-      // Combine and sort (optional: sort by name or interleave)
       const stops = [...restaurantStops, ...landmarkStops];
       if (stops.length === 0) {
         setCrawlError('No restaurants or landmarks found. Try a different city.');
         return;
       }
-      // Optionally, sort or interleave
       stops.sort((a, b) => a.name.localeCompare(b.name));
       const totalCost = stops.reduce((sum, s) => sum + s.price, 0);
       const totalTime = stops.reduce((sum, s) => sum + s.duration, 0);
@@ -141,7 +166,8 @@ export default function Home() {
         stops,
         totalCost,
         totalTime,
-        route: stops.map((s: Stop) => s.name).join(' → ')
+        route: stops.map((s: Stop) => s.name).join(' → '),
+        budgetTier: params.budget,
       });
     } catch (err) {
       setCrawlError(err instanceof Error ? err.message : 'Failed to load crawl.');
@@ -152,6 +178,7 @@ export default function Home() {
 
   const handleReset = () => {
     setCrawl(null);
+    setBookStep(1); // Go back to form step
   };
 
   const handleOrderOptimized = useCallback((orderedStops: Stop[]) => {
@@ -163,9 +190,12 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FDF8EF]">
+    <div className="min-h-screen" style={{ backgroundImage: 'url(/background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
+      {/* Gradient overlay with grain texture */}
+      <div className="fixed inset-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(253, 248, 239, 1) 0%, rgba(253, 248, 239, 1) 28%, rgba(245, 159, 0, 0.2) 100%), url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\' seed=\'2\'/%3E%3C/filter%3E%3Crect width=\'400\' height=\'400\' filter=\'url(%23noiseFilter)\' opacity=\'0.12\'/%3E%3C/svg%3E")', backgroundBlendMode: 'overlay' }} />
+      
       {/* Centered container with proper padding */}
-      <div className="max-w-7xl mx-auto px-12 pt-24 pb-20" style={{ paddingTop: '2.5rem' }}>
+      <div className="max-w-7xl mx-auto px-12 pt-24 pb-20 relative z-10" style={{ paddingTop: '2.5rem' }}>
         {/* Header */}
         <header className="text-center mb-8 space-y-4">
           <div className="inline-flex items-center justify-center gap-3 mb-2">
@@ -179,7 +209,7 @@ export default function Home() {
             className="text-7xl font-bold tracking-tighter"
             style={{ color: '#242116', fontFamily: 'Parkinsans' }}
           >
-            Munchy
+            Munchy Munchy
           </h1>
           <p className="text-xl max-w-2xl mx-auto opacity-80" style={{ color: '#242116' }}>
             Curating personalized food crawls, one chapter at a time.
@@ -196,19 +226,6 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
         >
-          <header className="text-center mb-16 space-y-4">
-            <div className="inline-flex items-center justify-center gap-3 mb-2">
-              <div className="h-[2px] w-12 bg-[#F59F00]" />
-              <span className="uppercase tracking-[0.3em] text-xs font-bold text-[#F59F00]">The Culinary Journal</span>
-              <div className="h-[2px] w-12 bg-[#F59F00]" />
-            </div>
-            <h1 className="text-7xl font-bold tracking-tighter" style={{ color: '#242116', fontFamily: 'Parkinsans' }}>
-              Munchy
-            </h1>
-            <p className="text-xl max-w-2xl mx-auto opacity-80" style={{ color: '#242116' }}>
-              Curating personalized food crawls, one chapter at a time.
-            </p>
-          </header>
 
           <div className="relative">
             {isGenerating && (
@@ -225,7 +242,7 @@ export default function Home() {
               </div>
             )}
             {!crawl ? (
-              <Book onGenerate={handleGenerateCombinedCrawl} />
+              <Book onGenerate={handleGenerateCombinedCrawl} step={bookStep} setStep={setBookStep} />
             ) : (
               <CrawlItinerary
                 crawl={crawl}
@@ -316,10 +333,6 @@ function filterStops(stops: Stop[], params: CrawlParams): Stop[] {
     // Only include restaurants in the user's selected price tier
     if (stop.price < minPrice || stop.price > maxPrice) return false;
 
-    if (params.dietary.length > 0) {
-      return params.dietary.some(diet => stop.dietaryOptions.includes(diet));
-    }
-
     return true;
   });
 }
@@ -328,7 +341,6 @@ const BUDGET_TIER_MAX: Record<BudgetTier, number> = {
   '$': 15,
   '$$': 40,
   '$$$': 80,
-  '$$$$': 200,
 };
 
 /** Price range per tier for filtering mock restaurants (inclusive) */
@@ -336,7 +348,6 @@ const PRICE_TIER_RANGE: Record<BudgetTier, [number, number]> = {
   '$': [0, 15],
   '$$': [16, 40],
   '$$$': [41, 80],
-  '$$$$': [81, 250],
 };
 
 function selectOptimalStops(stops: Stop[], params: CrawlParams, availableTime: number): Stop[] {
@@ -434,7 +445,7 @@ function mapApiRestaurantsToStops(restaurants: ApiRestaurant[], params: CrawlPar
     price: pricePerStop,
     duration: r.duration || 50,
     address: r.address,
-    dietaryOptions: params.dietary,
+    dietaryOptions: [],
     image: (r.image && r.image.trim()) ? r.image : placeholderImage,
     openTime: '09:00',
     closeTime: '22:00',
