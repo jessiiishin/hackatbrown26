@@ -10,6 +10,10 @@ import { useEffect, useState } from "react";
 import { CrawlMap, loadGoogleMapsScript } from "./CrawlMap";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import type { Crawl, Stop } from "../App";
+import {
+  PRICE_TIER_RANGE_DISPLAY,
+  formatCrawlPriceRange,
+} from "../App";
 
 interface Props {
   crawl: Crawl;
@@ -43,7 +47,7 @@ MY FOOD CRAWL ITINERARY
 =====================
 
 Total Stops: ${crawl.stops.length}
-Total Budget: $${crawl.totalCost}
+Price Range: ${crawl.budgetTier ? `${PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label} per meal • Total: ${formatCrawlPriceRange(crawl.budgetTier, crawl.stops.length)}` : `$${crawl.totalCost}`}
 Total Time: ${Math.floor(crawl.totalTime / 60)}h ${crawl.totalTime % 60}m
 
 STOPS:
@@ -164,13 +168,20 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
               className="text-2xl font-bold"
               style={{ color: "#242116" }}
             >
-              ${crawl.totalCost}
+              {crawl.budgetTier
+                ? formatCrawlPriceRange(
+                    crawl.budgetTier,
+                    crawl.stops.length
+                  )
+                : `$${crawl.totalCost}`}
             </div>
             <div
               className="text-sm"
               style={{ color: "#242116", opacity: 0.6 }}
             >
-              Total Cost
+              {crawl.budgetTier
+                ? PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label + " per meal"
+                : "Total Cost"}
             </div>
           </div>
           <div

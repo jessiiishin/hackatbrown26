@@ -109,29 +109,27 @@ async function geocodeCity(city, apiKey) {
   };
 }
 
+const tierToPriceLevels = {
+  $: ['PRICE_LEVEL_INEXPENSIVE'],
+  $$: ['PRICE_LEVEL_MODERATE'],
+  $$$: ['PRICE_LEVEL_EXPENSIVE'],
+  $$$$: ['PRICE_LEVEL_EXPENSIVE'],
+};
+
 /**
- * Calls Google Places API (Text Search) for 5 restaurants in city with given price tier.
- * Uses geocoding to restrict results to the actual city area (e.g. Tokyo, Japan, not Cranston, RI).
- * Returns array of { id, name, address, lat, lng, priceLevel }.
+ * Calls Google Places API (Text Search). If usePriceFilter is true, request includes priceLevels;
+ * otherwise fetches all restaurants in city so we can filter by price in code (fallback when strict filter returns 0).
+ * Returns array of places (raw API shape).
  */
-async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
-  const tierToPriceLevels = {
-    $: ['PRICE_LEVEL_INEXPENSIVE'],
-    $$: ['PRICE_LEVEL_MODERATE'],
-    $$$: ['PRICE_LEVEL_EXPENSIVE'],
-    $$$$: ['PRICE_LEVEL_EXPENSIVE'], // API may not have VERY_EXPENSIVE; use EXPENSIVE for $$$$
-  };
-  const priceLevels = tierToPriceLevels[budgetTier];
-
+async function searchPlaces(city, priceLevels, apiKey, usePriceFilter) {
   const locationRestriction = await geocodeCity(city, apiKey);
-
   const url = 'https://places.googleapis.com/v1/places:searchText';
   const body = {
     textQuery: `restaurants in ${city}`,
     includedType: 'restaurant',
-    priceLevels,
-    pageSize: 20, // fetch more so we can randomly pick 5
+    pageSize: 20,
     ...(locationRestriction && { locationRestriction: { rectangle: locationRestriction } }),
+    ...(usePriceFilter && priceLevels.length && { priceLevels }),
   };
 
   const fieldMask = [
@@ -159,14 +157,31 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
   }
 
   const data = await response.json();
-  const places = data.places || [];
+  return data.places || [];
+}
 
-  const matching = places.filter((p) => {
+/**
+ * Fetches up to 5 restaurants in city for the given price tier. If the strict price filter returns 0,
+ * retries without the price filter and keeps only places that match the tier so we still show 1–4 when available.
+ * Returns array of { id, name, address, lat, lng, priceLevel, image }.
+ */
+async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
+  const priceLevels = tierToPriceLevels[budgetTier];
+
+  let places = await searchPlaces(city, priceLevels, apiKey, true);
+  let matching = places.filter((p) => {
     const level = p.priceLevel || '';
     return priceLevels.includes(level);
   });
 
-  // Shuffle and take 5 so each search returns a different set
+  if (matching.length === 0) {
+    places = await searchPlaces(city, priceLevels, apiKey, false);
+    matching = places.filter((p) => {
+      const level = p.priceLevel || '';
+      return priceLevels.includes(level);
+    });
+  }
+
   const shuffled = matching.slice();
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
