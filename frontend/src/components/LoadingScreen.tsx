@@ -99,7 +99,7 @@ export function LoadingScreen() {
           className="text-6xl font-bold tracking-tighter" 
           style={{ color: '#242116' }}
         >
-          MunchyMunchy
+          Munchy Munchy
         </motion.h1>
         
         <motion.p 
