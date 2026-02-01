@@ -1,7 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'motion/react';
+import { UserButton } from '@clerk/clerk-react';
 import Book from './Book'
 import { CrawlItinerary } from './CrawlItinerary';
+import { SavedCrawlsList } from './SavedCrawlsList';
+import { useSavedCrawls } from '../hooks/useSavedCrawls';
 import { cities } from './utils/citymock';
 import type { CrawlParams, Crawl, Stop, BudgetTier } from './types.tsx';
 
@@ -12,6 +15,11 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [crawlError, setCrawlError] = useState<string | null>(null);
   const [bookStep, setBookStep] = useState(0);
+  const [showSavedCrawls, setShowSavedCrawls] = useState(false);
+  const [currentCity, setCurrentCity] = useState<string>('');
+  const [justSaved, setJustSaved] = useState(false);
+  
+  const { saveCrawl, isLoading: isSaving } = useSavedCrawls();
 
   const handleGenerateCrawl = async (params: CrawlParams) => {
     setCrawl(null);
@@ -86,6 +94,7 @@ export default function Home() {
     setCrawl(null);
     setCrawlError(null);
     setIsGenerating(true);
+    setCurrentCity(params.city); // Store city for save crawl
     try {
       const itineraryRes = await fetch(`${API_BASE}/itinerary`, {
         method: 'POST',
@@ -195,10 +204,55 @@ export default function Home() {
     });
   }, []);
 
+  const handleSaveCrawl = async () => {
+    if (!crawl || !currentCity) return;
+    const savedCrawl = await saveCrawl(crawl, currentCity);
+    if (savedCrawl) {
+      setJustSaved(true);
+      // Reset the checkmark after 3 seconds
+      setTimeout(() => setJustSaved(false), 3000);
+    }
+  };
+
+  const handleLoadSavedCrawl = (loadedCrawl: Crawl, city: string) => {
+    setCrawl(loadedCrawl);
+    setCurrentCity(city);
+    setBookStep(2); // Skip to itinerary view
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundImage: 'url(/background.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
       {/* Gradient overlay with grain texture */}
       <div className="fixed inset-0 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(253, 248, 239, 1) 0%, rgba(253, 248, 239, 1) 28%, rgba(245, 159, 0, 0.2) 100%), url("data:image/svg+xml,%3Csvg viewBox=\'0 0 400 400\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\' seed=\'2\'/%3E%3C/filter%3E%3Crect width=\'400\' height=\'400\' filter=\'url(%23noiseFilter)\' opacity=\'0.12\'/%3E%3C/svg%3E")', backgroundBlendMode: 'overlay' }} />
+      
+      {/* Top right user controls */}
+      <div style={{ position: 'fixed', top: '16px', right: '24px', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button
+          onClick={() => setShowSavedCrawls(true)}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: 'white',
+            color: '#242116',
+            border: '2px solid #F59F00',
+            borderRadius: '8px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          }}
+        >
+          My Crawls
+        </button>
+        <UserButton afterSignOutUrl="/" />
+      </div>
+
+      {/* Saved Crawls Modal */}
+      {showSavedCrawls && (
+        <SavedCrawlsList
+          onLoadCrawl={handleLoadSavedCrawl}
+          onClose={() => setShowSavedCrawls(false)}
+        />
+      )}
       
       {/* Centered container with proper padding */}
       <div className="max-w-7xl mx-auto px-12 pt-24 pb-20 relative z-10" style={{ paddingTop: '2.5rem' }}>
@@ -260,6 +314,9 @@ export default function Home() {
                 crawl={crawl}
                 onReset={handleReset}
                 onOrderOptimized={handleOrderOptimized}
+                onSaveCrawl={handleSaveCrawl}
+                isSaving={isSaving}
+                justSaved={justSaved}
               />
             )}
           </div>

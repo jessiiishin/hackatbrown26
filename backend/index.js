@@ -17,11 +17,14 @@ app.use(bodyParser.json());
 // CORS: allow frontend to call the API
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
+
+// Initialize database on startup
+db.initializeDatabase().catch(console.error);
 
 // --- ROUTES ---
 
@@ -45,6 +48,141 @@ app.post('/adjustCrawl', async (req, res) => {
 // GET /places
 app.get('/places', (req, res) => {
   res.json({ message: 'Places fetched (placeholder)', data: [] });
+});
+
+// --- CRAWL CRUD API ---
+
+/**
+ * GET /api/crawls?userId=xxx
+ * Returns all saved crawls for a user
+ */
+app.get('/api/crawls', async (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const crawls = await db.getCrawlsByUserId(userId);
+    return res.json(crawls);
+  } catch (err) {
+    console.error('Error fetching crawls:', err.message);
+    return res.status(500).json({ error: 'Failed to fetch crawls' });
+  }
+});
+
+/**
+ * GET /api/crawls/:id?userId=xxx
+ * Returns a specific crawl by ID
+ */
+app.get('/api/crawls/:id', async (req, res) => {
+  const { id } = req.params;
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const crawl = await db.getCrawlById(id, userId);
+    if (!crawl) {
+      return res.status(404).json({ error: 'Crawl not found' });
+    }
+    return res.json(crawl);
+  } catch (err) {
+    console.error('Error fetching crawl:', err.message);
+    return res.status(500).json({ error: 'Failed to fetch crawl' });
+  }
+});
+
+/**
+ * POST /api/crawls
+ * Creates a new crawl
+ */
+app.post('/api/crawls', async (req, res) => {
+  const { userId, name, city, budget, duration, dietaryPreferences, cuisines, crawlData } = req.body;
+  if (!userId || !city || !crawlData) {
+    return res.status(400).json({ error: 'userId, city, and crawlData are required' });
+  }
+  try {
+    const crawl = await db.createCrawl({
+      userId,
+      name: name || `${city} Crawl`,
+      city,
+      budget,
+      duration,
+      dietaryPreferences,
+      cuisines,
+      crawlData,
+    });
+    return res.status(201).json(crawl);
+  } catch (err) {
+    console.error('Error creating crawl:', err.message);
+    return res.status(500).json({ error: 'Failed to save crawl' });
+  }
+});
+
+/**
+ * PUT /api/crawls/:id
+ * Updates an existing crawl
+ */
+app.put('/api/crawls/:id', async (req, res) => {
+  const { id } = req.params;
+  const { userId, name, crawlData } = req.body;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const crawl = await db.updateCrawl(id, userId, { name, crawlData });
+    if (!crawl) {
+      return res.status(404).json({ error: 'Crawl not found' });
+    }
+    return res.json(crawl);
+  } catch (err) {
+    console.error('Error updating crawl:', err.message);
+    return res.status(500).json({ error: 'Failed to update crawl' });
+  }
+});
+
+/**
+ * DELETE /api/crawls/:id?userId=xxx
+ * Deletes a crawl
+ */
+app.delete('/api/crawls/:id', async (req, res) => {
+  const { id } = req.params;
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const deleted = await db.deleteCrawl(id, userId);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Crawl not found' });
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting crawl:', err.message);
+    return res.status(500).json({ error: 'Failed to delete crawl' });
+  }
+});
+
+/**
+ * POST /api/crawls/:id/duplicate
+ * Duplicates a crawl
+ */
+app.post('/api/crawls/:id/duplicate', async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const crawl = await db.duplicateCrawl(id, userId);
+    if (!crawl) {
+      return res.status(404).json({ error: 'Crawl not found' });
+    }
+    return res.status(201).json(crawl);
+  } catch (err) {
+    console.error('Error duplicating crawl:', err.message);
+    return res.status(500).json({ error: 'Failed to duplicate crawl' });
+  }
 });
 
 /**
