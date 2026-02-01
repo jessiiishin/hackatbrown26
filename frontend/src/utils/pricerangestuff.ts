@@ -1,29 +1,24 @@
 import type { BudgetTier } from "../components/types";
 
-/** Price tier display per guide: label and per-stop min/max for scaling total range. */
+/** Price tier display per guide: short per-meal label and min/max for scaling total range. */
 export const PRICE_TIER_RANGE_DISPLAY: Record<
   BudgetTier,
   { label: string; minPerStop: number; maxPerStop: number | null }
 > = {
   $: {
-    label: 'Usually $10 and under',
+    label: 'About $10 and under',
     minPerStop: 0,
     maxPerStop: 10,
   },
   $$: {
-    label: '$10–$25',
+    label: 'About $10–$25',
     minPerStop: 10,
     maxPerStop: 25,
   },
   $$$: {
-    label: '$25–$45',
+    label: 'About $25–$45',
     minPerStop: 25,
     maxPerStop: 45,
-  },
-  $$$$: {
-    label: '$50 and up',
-    minPerStop: 50,
-    maxPerStop: null,
   },
 };
 
@@ -33,7 +28,7 @@ export function formatCrawlPriceRange(
   numStops: number
 ): string {
   const { minPerStop, maxPerStop } = PRICE_TIER_RANGE_DISPLAY[budgetTier];
-  const restaurantCount = numStops; // all stops are restaurants in current flow
+  const restaurantCount = numStops;
   if (maxPerStop == null) {
     return `$${minPerStop * restaurantCount}+`;
   }
@@ -43,4 +38,17 @@ export function formatCrawlPriceRange(
   return `$${minPerStop * restaurantCount}–$${maxPerStop * restaurantCount}`;
 }
 
-export const BUDGET_TIERS: BudgetTier[] = ['$', '$$', '$$$', '$$$$'];
+/** Upper value of the total range for display (e.g. "Food Funds: $125"). */
+export function getTotalRangeUpper(
+  budgetTier: BudgetTier,
+  numStops: number
+): string {
+  const { minPerStop, maxPerStop } = PRICE_TIER_RANGE_DISPLAY[budgetTier];
+  const n = numStops;
+  if (maxPerStop == null) {
+    return `$${minPerStop * n}+`;
+  }
+  return `$${maxPerStop * n}`;
+}
+
+export const BUDGET_TIERS: BudgetTier[] = ['$', '$$', '$$$'];
