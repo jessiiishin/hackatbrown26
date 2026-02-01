@@ -47,7 +47,7 @@ app.get('/places', (req, res) => {
 
 /**
  * GET /places/restaurants?city=New+York&budgetTier=$$
- * Returns 5 restaurants from Google Places API for the given city and price tier ($, $$, $$$, $$$$).
+ * Returns 5 restaurants from Google Places API for the given city and price tier ($, $$, $$$).
  * Uses GOOGLE_PLACES_API_KEY (or GOOGLE_MAPS_API_KEY) from .env.
  */
 app.get('/places/restaurants', async (req, res) => {
@@ -58,10 +58,10 @@ app.get('/places/restaurants', async (req, res) => {
     return res.status(400).json({ error: 'Query parameter "city" is required' });
   }
 
-  const validTiers = ['$', '$$', '$$$', '$$$$'];
+  const validTiers = ['$', '$$', '$$$'];
   if (!validTiers.includes(budgetTier)) {
     return res.status(400).json({
-      error: 'Query parameter "budgetTier" must be one of: $, $$, $$$, $$$$',
+      error: 'Query parameter "budgetTier" must be one of: $, $$, $$$',
     });
   }
 
@@ -80,6 +80,56 @@ app.get('/places/restaurants', async (req, res) => {
     return res.status(502).json({
       error: 'Failed to fetch restaurants from Google Places',
       details: err.message,
+    });
+  }
+});
+
+/**
+ * GET /places/autocomplete?input=San+Fr
+ * Returns city suggestions from Google Places Autocomplete (New) API, restricted to (cities).
+ * Uses GOOGLE_PLACES_API_KEY (or GOOGLE_MAPS_API_KEY) from .env.
+ */
+app.get('/places/autocomplete', async (req, res) => {
+  const input = (req.query.input || '').trim();
+  const apiKey = config.GOOGLE_PLACES_API_KEY;
+  if (!apiKey || apiKey.startsWith('YOUR_')) {
+    return res.status(503).json({
+      error: 'Google Places API key is not configured. Set GOOGLE_PLACES_API_KEY in backend .env',
+    });
+  }
+  if (!input) {
+    return res.json({ suggestions: [] });
+  }
+  try {
+    const url = 'https://places.googleapis.com/v1/places:autocomplete';
+    const body = {
+      input,
+      includedPrimaryTypes: ['(cities)'],
+    };
+    const fetchRes = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'suggestions.placePrediction.text.text',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!fetchRes.ok) {
+      const errText = await fetchRes.text();
+      throw new Error(fetchRes.status + ' ' + errText);
+    }
+    const data = await fetchRes.json();
+    const suggestions = (data.suggestions || [])
+      .map((s) => s.placePrediction?.text?.text)
+      .filter(Boolean);
+    return res.json({ suggestions });
+  } catch (err) {
+    console.error('Places Autocomplete error:', err.message);
+    return res.status(502).json({
+      error: 'Failed to fetch city suggestions',
+      details: err.message,
+      suggestions: [],
     });
   }
 });
@@ -113,7 +163,6 @@ const tierToPriceLevels = {
   $: ['PRICE_LEVEL_INEXPENSIVE'],
   $$: ['PRICE_LEVEL_MODERATE'],
   $$$: ['PRICE_LEVEL_EXPENSIVE'],
-  $$$$: ['PRICE_LEVEL_EXPENSIVE'],
 };
 
 /** Minimum rating (out of 5) for restaurants; only places with rating >= this are included. */
@@ -180,7 +229,10 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
     return rating != null && rating >= MIN_RATING;
   });
 
-  if (matching.length === 0) {
+  // Fallback: retry without price filter so we can filter in code (more results, but API
+  // priceLevel can be wrong for some places). Skip fallback for $ (cheapest) to avoid
+  // showing misclassified expensive restaurants that appear in the broad "all restaurants" set.
+  if (matching.length === 0 && budgetTier !== '$') {
     places = await searchPlaces(city, priceLevels, apiKey, false);
     matching = places.filter((p) => {
       const level = p.priceLevel || '';

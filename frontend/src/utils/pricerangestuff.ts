@@ -20,11 +20,6 @@ export const PRICE_TIER_RANGE_DISPLAY: Record<
     minPerStop: 25,
     maxPerStop: 45,
   },
-  $$$$: {
-    label: 'About $50 and up',
-    minPerStop: 50,
-    maxPerStop: null,
-  },
 };
 
 /** Format total price range for display based on tier and number of stops. */
@@ -56,4 +51,4 @@ export function getTotalRangeUpper(
   return `$${maxPerStop * n}`;
 }
 
-export const BUDGET_TIERS: BudgetTier[] = ['$', '$$', '$$$', '$$$$'];
+export const BUDGET_TIERS: BudgetTier[] = ['$', '$$', '$$$'];

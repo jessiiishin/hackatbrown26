@@ -317,10 +317,6 @@ function filterStops(stops: Stop[], params: CrawlParams): Stop[] {
     // Only include restaurants in the user's selected price tier
     if (stop.price < minPrice || stop.price > maxPrice) return false;
 
-    if (params.dietary.length > 0) {
-      return params.dietary.some(diet => stop.dietaryOptions.includes(diet));
-    }
-
     return true;
   });
 }
@@ -329,7 +325,6 @@ const BUDGET_TIER_MAX: Record<BudgetTier, number> = {
   '$': 15,
   '$$': 40,
   '$$$': 80,
-  '$$$$': 200,
 };
 
 /** Price range per tier for filtering mock restaurants (inclusive) */
@@ -337,7 +332,6 @@ const PRICE_TIER_RANGE: Record<BudgetTier, [number, number]> = {
   '$': [0, 15],
   '$$': [16, 40],
   '$$$': [41, 80],
-  '$$$$': [81, 250],
 };
 
 function selectOptimalStops(stops: Stop[], params: CrawlParams, availableTime: number): Stop[] {
@@ -432,7 +426,7 @@ function mapApiRestaurantsToStops(restaurants: ApiRestaurant[], params: CrawlPar
     price: pricePerStop,
     duration: 45,
     address: r.address,
-    dietaryOptions: params.dietary,
+    dietaryOptions: [],
     image: (r.image && r.image.trim()) ? r.image : placeholderImage,
     openTime: '09:00',
     closeTime: '22:00',
