@@ -71,7 +71,7 @@ export default function Payment({ setStep }: PaymentProps) {
         {/* Subtitle */}
         <div className="mb-12">
           <p className="text-lg text-gray-600">
-            Unlock premium features and unlimited pass generation
+            Pre-pay for meals!
           </p>
         </div>
 
