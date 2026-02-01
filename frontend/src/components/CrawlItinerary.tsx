@@ -422,6 +422,15 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
                     <Clock className="w-4 h-4" />
                     {stop.duration} min at stop
                   </div>
+                  <div className="flex items-center gap-2 text-gray-500">
+                    {index === 0 ? (
+                      <span>ETA: 0 min (starting here)</span>
+                    ) : (
+                      <span>
+                        ETA: ~{crawl.stops[index - 1].walkingMinutesToNext ?? "?"} min walk from previous
+                      </span>
+                    )}
+                  </div>
                   {index < crawl.stops.length - 1 && stop.walkingMinutesToNext != null && (
                     <div className="flex items-center gap-2 text-gray-500">
                       <span>~{stop.walkingMinutesToNext} min walk to next</span>
