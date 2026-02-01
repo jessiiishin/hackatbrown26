@@ -86,7 +86,7 @@ export default function FoodCrawlForm(props: Props) {
           className="text-3xl font-bold"
           style={{ color: '#242116', fontFamily: 'Parkinsans' }}
         >
-          Chapter Setup
+          Crawl Setup
         </h2>
       </div>
 
@@ -143,7 +143,7 @@ export default function FoodCrawlForm(props: Props) {
             }}
           >
             <span className="flex items-center justify-center gap-2">
-              {city ? 'Write Chapter' : 'Pick a City'}
+              {city ? 'Let the Munching Begin!' : 'Pick a City'}
               {city && <ChevronRight className="w-6 h-6" />}
             </span>
           </button>

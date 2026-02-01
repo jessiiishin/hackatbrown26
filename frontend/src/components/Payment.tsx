@@ -13,12 +13,10 @@ export default function Payment({ setStep }: PaymentProps) {
       id: 'oneTime',
       name: 'Single Pass',
       tickets: 1,
-      price: 4.99,
-      description: 'Generate 1 crawl',
+      price: 99.99,
+      description: 'Pre-pay for 1 crawl',
       features: [
-        'One pass generation',
-        'Premium filters',
-        'Map optimization',
+        'Pays for one food crawl',
         'Never expires',
       ],
     },
@@ -26,12 +24,10 @@ export default function Payment({ setStep }: PaymentProps) {
       id: 'fiveTimes',
       name: 'Five Passes',
       tickets: 5,
-      price: 23.99,
-      description: 'Generate 5 crawls',
+      price: 399.99,
+      description: 'Pre-pay for 5 crawls',
       features: [
-        'Five pass generations',
-        'Premium filters',
-        'Map optimization',
+        'Pays for five food crawls',
         'Never expires',
       ],
       popular: true,
@@ -40,12 +36,10 @@ export default function Payment({ setStep }: PaymentProps) {
       id: 'tenTimes',
       name: 'Ten Passes',
       tickets: 10,
-      price: 43.99,
-      description: 'Generate 10 crawls',
+      price: 799.99,
+      description: 'Pre-pay for 10 crawls',
       features: [
-        'Ten pass generations',
-        'Premium filters',
-        'Map optimization',
+        'Pays for ten food crawls',
         'Never expires',
       ],
     },
@@ -71,7 +65,7 @@ export default function Payment({ setStep }: PaymentProps) {
         {/* Subtitle */}
         <div className="mb-12">
           <p className="text-lg text-gray-600">
-            Unlock premium features and unlimited pass generation
+            Pre-pay for all your munches!
           </p>
         </div>
 
@@ -112,6 +106,7 @@ export default function Payment({ setStep }: PaymentProps) {
                     <span className="text-4xl font-bold mx-8" style={{ color: '#F59F00' }}>
                       ${plan.price}
                     </span>
+                    {' '}
                     <span className="text-gray-500">total</span>
                   </div>
                   <span className="text-sm text-gray-500">
