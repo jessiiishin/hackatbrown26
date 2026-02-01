@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import type { Stop } from '../App';
+import type { Stop } from './types';
+import { coordinates } from './utils/citymock'
 
 interface Props {
   stops: Stop[];
@@ -8,54 +9,7 @@ interface Props {
 }
 
 // Mock coordinates for demonstration
-const getCoordinates = (address: string, city: string) => {
-  const coordinates: Record<string, Record<string, { lat: number; lng: number }>> = {
-    'New York': {
-      'Greenwich Village': { lat: 40.7336, lng: -74.0027 },
-      'Liberty Island': { lat: 40.6892, lng: -74.0445 },
-      'Lower East Side': { lat: 40.7209, lng: -73.9840 },
-      'Midtown': { lat: 40.7549, lng: -73.9840 },
-      'Chinatown': { lat: 40.7157, lng: -73.9970 },
-      'Brooklyn Bridge': { lat: 40.7061, lng: -73.9969 },
-      'Upper West Side': { lat: 40.7870, lng: -73.9754 }
-    },
-    'San Francisco': {
-      'Mission District': { lat: 37.7599, lng: -122.4148 },
-      'Golden Gate': { lat: 37.8199, lng: -122.4783 },
-      'Fisherman\'s Wharf': { lat: 37.8080, lng: -122.4177 },
-      'Nob Hill': { lat: 37.7923, lng: -122.4155 },
-      'Alcatraz': { lat: 37.8267, lng: -122.4230 }
-    },
-    'Tokyo': {
-      'Tsukiji': { lat: 35.6654, lng: 139.7707 },
-      'Asakusa': { lat: 35.7148, lng: 139.7967 },
-      'Shibuya': { lat: 35.6595, lng: 139.7004 },
-      'Minato': { lat: 35.6586, lng: 139.7454 },
-      'Harajuku': { lat: 35.6702, lng: 139.7027 },
-      'Ginza': { lat: 35.6712, lng: 139.7650 }
-    },
-    'Paris': {
-      'Le Marais': { lat: 48.8566, lng: 2.3626 },
-      'Champ de Mars': { lat: 48.8556, lng: 2.2986 },
-      'Louvre': { lat: 48.8606, lng: 2.3376 },
-      'Saint-Germain-des-Prés': { lat: 48.8540, lng: 2.3330 },
-      'Île de la Cité': { lat: 48.8556, lng: 2.3477 },
-      '11th Arrondissement': { lat: 48.8566, lng: 2.3799 }
-    },
-    'London': {
-      'London District 1': { lat: 51.5074, lng: -0.1278 },
-      'London District 2': { lat: 51.5033, lng: -0.1195 },
-      'London District 3': { lat: 51.5117, lng: -0.1233 },
-      'London District 4': { lat: 51.5150, lng: -0.1419 }
-    },
-    'Rome': {
-      'Rome District 1': { lat: 41.9028, lng: 12.4964 },
-      'Rome District 2': { lat: 41.8902, lng: 12.4922 },
-      'Rome District 3': { lat: 41.8986, lng: 12.4769 },
-      'Rome District 4': { lat: 41.9009, lng: 12.4833 }
-    }
-  };
-
+const computeCoords = (address: string, city: string) => {
   // Determine city from the stops
   for (const [cityName, locations] of Object.entries(coordinates)) {
     if (locations[address]) {
@@ -120,7 +74,7 @@ function findOptimalOrder(matrix: number[][]): number[] {
   return bestOrder;
 }
 
-export function CrawlMap({ stops, onOrderOptimized }: Props) {
+export function ResultMap({ stops, onOrderOptimized }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
 
@@ -142,7 +96,7 @@ export function CrawlMap({ stops, onOrderOptimized }: Props) {
     const positions = stops.map((stop) =>
       stop.lat != null && stop.lng != null
         ? { lat: stop.lat, lng: stop.lng }
-        : getCoordinates(stop.address, 'city')
+        : computeCoords(stop.address, 'city')
     );
 
     const addMarkersAndRoute = (
@@ -334,28 +288,4 @@ export function CrawlMap({ stops, onOrderOptimized }: Props) {
       </div>
     </div>
   );
-}
-
-// Load Google Maps script
-export function loadGoogleMapsScript(apiKey: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (typeof google !== 'undefined' && google.maps) {
-      resolve();
-      return;
-    }
-
-    // Check if API key is placeholder
-    if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-      reject(new Error('Please add your Google Maps API key'));
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly&libraries=marker`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load Google Maps script. Please check your API key.'));
-    document.head.appendChild(script);
-  });
 }

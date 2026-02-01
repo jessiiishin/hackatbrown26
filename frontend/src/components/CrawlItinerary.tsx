@@ -7,13 +7,14 @@ import {
   Download,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { CrawlMap, loadGoogleMapsScript } from "./CrawlMap";
+import { ResultMap } from "./ResultMap";
+import { loadGoogleMapsScript } from '../utils/googleMapsLoader'
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import type { Crawl, Stop } from "../App";
+import type { Crawl, Stop } from "./types";
 import {
   PRICE_TIER_RANGE_DISPLAY,
   formatCrawlPriceRange,
-} from "../App";
+} from "../utils/pricerangestuff";
 
 interface Props {
   crawl: Crawl;
@@ -22,15 +23,17 @@ interface Props {
   onOrderOptimized?: (orderedStops: Stop[]) => void;
 }
 
-const GOOGLE_MAPS_API_KEY =
-  "AIzaSyDPxDaN6zphc0lhM3UcmpNQwP62m6s2IMQ";
-
 export function CrawlItinerary({ crawl, onReset, onOrderOptimized }: Props) {
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
+  const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  if (!key) {
+    throw Error("Missing api key google")
+  }
+
   useEffect(() => {
-    loadGoogleMapsScript(GOOGLE_MAPS_API_KEY)
+    loadGoogleMapsScript(key)
       .then(() => {
         setMapsLoaded(true);
         setMapError(null);
@@ -162,7 +165,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           >
             <DollarSign
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#D1E892" }}
+              style={{ color: "#C1EA78" }}
             />
             <div
               className="text-2xl font-bold"
@@ -193,7 +196,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           >
             <Clock
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#D1E892" }}
+              style={{ color: "#C1EA78" }}
             />
             <div
               className="text-2xl font-bold"
@@ -231,7 +234,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           </p>
         </div>
         {mapsLoaded ? (
-          <CrawlMap stops={crawl.stops} onOrderOptimized={onOrderOptimized} />
+          <ResultMap stops={crawl.stops} onOrderOptimized={onOrderOptimized} />
         ) : mapError ? (
           <div className="w-full h-[500px] bg-red-50 rounded-2xl flex items-center justify-center border-2 border-red-200">
             <div className="text-center px-8">
@@ -422,7 +425,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
         className="mt-8 rounded-2xl p-6 text-white text-center"
         style={{
           background:
-            "linear-gradient(to right, #F59F00, #D1E892)",
+            "linear-gradient(to right, #F59F00, #C1EA78)",
         }}
       >
         <h3 className="text-2xl font-bold mb-2">
