@@ -13,7 +13,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import type { Crawl, Stop } from "./types";
 import {
   PRICE_TIER_RANGE_DISPLAY,
-  formatCrawlPriceRange,
+  getTotalRangeUpper,
 } from "../utils/pricerangestuff";
 
 interface Props {
@@ -45,12 +45,16 @@ export function CrawlItinerary({ crawl, onReset, onOrderOptimized }: Props) {
   }, []);
 
   const handleDownload = () => {
+    const restaurantCount = crawl.stops.filter((s) => s.type === "restaurant").length;
+    const priceRangeText = crawl.budgetTier
+      ? `Food Funds: ${restaurantCount === 0 ? "Free" : getTotalRangeUpper(crawl.budgetTier, restaurantCount)} | ${PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label} per meal`
+      : `$${crawl.totalCost}`;
     const content = `
 MY FOOD CRAWL ITINERARY
 =====================
 
 Total Stops: ${crawl.stops.length}
-Price Range: ${crawl.budgetTier ? `${PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label} per meal • Total: ${formatCrawlPriceRange(crawl.budgetTier, crawl.stops.length)}` : `$${crawl.totalCost}`}
+Price Range: ${priceRangeText}
 Total Time: ${Math.floor(crawl.totalTime / 60)}h ${crawl.totalTime % 60}m
 
 STOPS:
@@ -167,25 +171,47 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
               className="w-6 h-6 mx-auto mb-2"
               style={{ color: "#C1EA78" }}
             />
-            <div
-              className="text-2xl font-bold"
-              style={{ color: "#242116" }}
-            >
-              {crawl.budgetTier
-                ? formatCrawlPriceRange(
-                    crawl.budgetTier,
-                    crawl.stops.length
-                  )
-                : `$${crawl.totalCost}`}
-            </div>
-            <div
-              className="text-sm"
-              style={{ color: "#242116", opacity: 0.6 }}
-            >
-              {crawl.budgetTier
-                ? PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label + " per meal"
-                : "Total Cost"}
-            </div>
+            {crawl.budgetTier ? (
+              <>
+                <div
+                  className="text-lg font-bold"
+                  style={{ color: "#242116" }}
+                >
+                  Food Funds: {(() => {
+                    const restaurantCount = crawl.stops.filter(
+                      (s) => s.type === "restaurant"
+                    ).length;
+                    if (restaurantCount === 0)
+                      return "Free";
+                    return getTotalRangeUpper(
+                      crawl.budgetTier,
+                      restaurantCount
+                    );
+                  })()}
+                </div>
+                <div
+                  className="text-sm mt-1"
+                  style={{ color: "#242116", opacity: 0.75 }}
+                >
+                  {PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label} per meal
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className="text-2xl font-bold"
+                  style={{ color: "#242116" }}
+                >
+                  ${crawl.totalCost}
+                </div>
+                <div
+                  className="text-sm"
+                  style={{ color: "#242116", opacity: 0.6 }}
+                >
+                  Total Cost
+                </div>
+              </>
+            )}
           </div>
           <div
             className="rounded-xl p-4 text-center"

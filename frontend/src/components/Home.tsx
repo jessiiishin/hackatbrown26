@@ -142,7 +142,8 @@ export default function Home() {
         stops,
         totalCost,
         totalTime,
-        route: stops.map((s: Stop) => s.name).join(' → ')
+        route: stops.map((s: Stop) => s.name).join(' → '),
+        budgetTier: params.budget,
       });
     } catch (err) {
       setCrawlError(err instanceof Error ? err.message : 'Failed to load crawl.');
@@ -308,10 +309,6 @@ function filterStops(stops: Stop[], params: CrawlParams): Stop[] {
     // Only include restaurants in the user's selected price tier
     if (stop.price < minPrice || stop.price > maxPrice) return false;
 
-    if (params.dietary.length > 0) {
-      return params.dietary.some(diet => stop.dietaryOptions.includes(diet));
-    }
-
     return true;
   });
 }
@@ -320,7 +317,6 @@ const BUDGET_TIER_MAX: Record<BudgetTier, number> = {
   '$': 15,
   '$$': 40,
   '$$$': 80,
-  '$$$$': 200,
 };
 
 /** Price range per tier for filtering mock restaurants (inclusive) */
@@ -328,7 +324,6 @@ const PRICE_TIER_RANGE: Record<BudgetTier, [number, number]> = {
   '$': [0, 15],
   '$$': [16, 40],
   '$$$': [41, 80],
-  '$$$$': [81, 250],
 };
 
 function selectOptimalStops(stops: Stop[], params: CrawlParams, availableTime: number): Stop[] {
@@ -397,6 +392,7 @@ interface ApiRestaurant {
   priceLevel?: string;
   /** Photo URL from Place Photos (New) when available */
   image?: string | null;
+  duration: number; // Optional, from backend getEnhancedPlaceDetails
 }
 
 const API_PRICE_LEVEL_TO_TIER: Record<string, BudgetTier> = {
@@ -415,15 +411,17 @@ function mapApiRestaurantsToStops(restaurants: ApiRestaurant[], params: CrawlPar
     return tier === params.budget;
   });
 
+  
+
   return matching.map((r) => ({
     id: r.id || `place-${r.name.replace(/\s/g, '-')}`,
     name: r.name,
     type: 'restaurant' as const,
     description: `${r.name} in ${params.city}`,
     price: pricePerStop,
-    duration: 45,
+    duration: r.duration || 50,
     address: r.address,
-    dietaryOptions: params.dietary,
+    dietaryOptions: [],
     image: (r.image && r.image.trim()) ? r.image : placeholderImage,
     openTime: '09:00',
     closeTime: '22:00',

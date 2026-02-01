@@ -11,7 +11,7 @@ interface Props {
   setStep?: (step: number) => void;
 }
 
-const CITIES = ['New York', 'San Francisco', 'Tokyo', 'Paris'];
+const CITIES = ['New York', 'San Francisco', 'Tokyo', 'Paris', 'Seattle', 'Boston', 'Chicago'];
 const DIETARY_OPTIONS = [
   { value: 'vegetarian', label: 'Vegetarian' },
   { value: 'vegan', label: 'Vegan' },
