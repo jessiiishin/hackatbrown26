@@ -205,11 +205,17 @@ export default function Home() {
 
           <div className="relative">
             {isGenerating && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#FDF8EF]/90 rounded-2xl min-h-[400px]">
-                <div className="text-center">
-                  <div className="inline-block w-10 h-10 border-4 border-[#F59F00] border-t-transparent rounded-full animate-spin mb-4" />
-                  <p className="text-lg font-medium" style={{ color: '#242116' }}>Finding restaurants...</p>
-                </div>
+              <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#FDF8EF]" style={{ zIndex: 99999 }}>
+                <motion.div
+                  animate={{ scale: [0.8, 1, 0.8] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="flex flex-col items-center"
+                >
+                  <img src="/munch.png" alt="Loading" className="w-32 h-32 mb-4" />
+                  <div className="px-6 py-4 rounded-2xl" style={{ backgroundColor: 'rgba(242, 159, 0, 0.5)' }}>
+                    <p className="text-lg font-medium" style={{ color: '#242116' }}>loading</p>
+                  </div>
+                </motion.div>
               </div>
             )}
             {crawlError && (

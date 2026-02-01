@@ -139,23 +139,22 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           <div
             className="rounded-xl p-4 text-center"
             style={{
-              background:
-                "linear-gradient(to bottom right, #FEF3E2, #FDE8C9)",
+              backgroundColor: "#F59F00",
             }}
           >
             <MapPin
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#F59F00" }}
+              style={{ color: "#FFF6ED" }}
             />
             <div
               className="text-2xl font-bold"
-              style={{ color: "#242116" }}
+              style={{ color: "#FFF6ED" }}
             >
               {crawl.stops.length}
             </div>
             <div
               className="text-sm"
-              style={{ color: "#242116", opacity: 0.6 }}
+              style={{ color: "#FFF6ED"}}
             >
               Stops
             </div>
@@ -164,18 +163,18 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
             className="rounded-xl p-4 text-center"
             style={{
               background:
-                "linear-gradient(to bottom right, #F4F9E5, #E8F2D1)",
+                "linear-gradient(to bottom right, #82ab3b)",
             }}
           >
             <DollarSign
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#C1EA78" }}
+              style={{ color: "#FFF6ED" }}
             />
             {crawl.budgetTier ? (
               <>
                 <div
                   className="text-lg font-bold"
-                  style={{ color: "#242116" }}
+                  style={{ color: "#FFF6ED" }}
                 >
                   Food Funds: {(() => {
                     const restaurantCount = crawl.stops.filter(
@@ -191,7 +190,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
                 </div>
                 <div
                   className="text-sm mt-1"
-                  style={{ color: "#242116", opacity: 0.75 }}
+                  style={{ color: "#FFF6ED" }}
                 >
                   {PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label} per meal
                 </div>
@@ -216,24 +215,23 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           <div
             className="rounded-xl p-4 text-center"
             style={{
-              background:
-                "linear-gradient(to bottom right, #FEF3E2, #E8F2D1)",
+              backgroundColor: "#F59F00",
             }}
           >
             <Clock
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#C1EA78" }}
+              style={{ color: "#FFF6ED" }}
             />
             <div
               className="text-2xl font-bold"
-              style={{ color: "#242116" }}
+              style={{ color: "#FFF6ED" }}
             >
               {Math.floor(crawl.totalTime / 60)}h{" "}
               {crawl.totalTime % 60}m
             </div>
             <div
               className="text-sm"
-              style={{ color: "#242116", opacity: 0.6 }}
+              style={{ color: "#FFF6ED" }}
             >
               Duration
             </div>
@@ -423,23 +421,6 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
                     {stop.duration} minutes
                   </div>
                 </div>
-
-                {stop.dietaryOptions.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2 ml-16">
-                    {stop.dietaryOptions.map((option) => (
-                      <span
-                        key={option}
-                        className="px-3 py-1 rounded-full text-xs font-medium capitalize"
-                        style={{
-                          backgroundColor: "#FFF8E1",
-                          color: "#F57C00",
-                        }}
-                      >
-                        {option}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </div>
