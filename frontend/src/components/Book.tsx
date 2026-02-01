@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { MapPin, DollarSign, Clock, Apple } from 'lucide-react';
 import type { CrawlParams } from './types';
@@ -7,6 +7,8 @@ import CrawlForm from './CrawlForm';
 
 interface Props {
   onGenerate: (params: CrawlParams) => void;
+  step?: number;
+  setStep?: (step: number) => void;
 }
 
 const CITIES = ['New York', 'San Francisco', 'Tokyo', 'Paris'];
@@ -18,9 +20,21 @@ const DIETARY_OPTIONS = [
   { value: 'halal', label: 'Halal' },
 ];
 
-export default function Book({ onGenerate }: Props) {
-  const [step, setStep] = useState(0); // 0: Cover/All About You, 1: Form
-  
+export default function Book({ onGenerate, step: initialStep = 0, setStep: setParentStep }: Props) {
+  const [step, setLocalStep] = useState(initialStep);
+
+  // Sync with parent step changes
+  useEffect(() => {
+    setLocalStep(initialStep);
+  }, [initialStep]);
+
+  // Wrapper for setStep that updates both local and parent state
+  const setStep = (newStep: number) => {
+    setLocalStep(newStep);
+    if (setParentStep) {
+      setParentStep(newStep);
+    }
+  };
 
   const renderPage = () => {
     switch (step) {
@@ -34,37 +48,20 @@ export default function Book({ onGenerate }: Props) {
   };
 
   return (
-    <div className="relative max-w-5xl mx-auto min-h-[700px] perspective-2000">
-      <div className="relative w-full h-full flex justify-center items-center py-12">
+    <div className="relative max-w-5xl mx-auto h-[1000px]">
+      <div className="relative w-full h-full flex justify-center items-center">
         
         {/* The Book Spread Container */}
-        <div className="relative w-full flex items-stretch min-h-[650px] sm:perspective-2000">
+        <div className="relative w-full h-full flex">
           
-          {/* Static Left Page (Portion of previous page) - Hidden on very small screens */}
-          <div className="hidden sm:flex w-[80px] md:w-[120px] bg-[#f7f3e9] rounded-l-2xl border-r border-black/10 shadow-lg relative overflow-hidden flex-shrink-0">
-             {/* Binding shadow */}
-             <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/20 to-transparent z-10" />
-             {/* Content Hint */}
-             <div className="p-4 opacity-20 pointer-events-none select-none">
-                <div className="w-full h-4 bg-gray-400 rounded mb-4" />
-                <div className="w-full h-32 bg-gray-200 rounded mb-4" />
-                <div className="w-full h-4 bg-gray-300 rounded mb-2" />
-                <div className="w-2/3 h-4 bg-gray-300 rounded" />
-             </div>
-          </div>
-
-          {/* Active Main Page (Right side that flips) */}
-          <div className="flex-1 bg-[#fdfaf3] rounded-2xl sm:rounded-l-none sm:rounded-r-2xl shadow-2xl relative transition-all duration-700 overflow-hidden"
+          {/* Active Main Page */}
+          <div className="flex-1 bg-[#fdfaf3] rounded-2xl shadow-2xl relative transition-all duration-700"
                style={{ boxShadow: '20px 20px 60px rgba(0,0,0,0.1)' }}>
             
              <AnimatePresence mode="wait">
               {renderPage()}
             </AnimatePresence>
         </div>
-          
-          {/* Decorative binding details */}
-          <div className="absolute left-[12px] top-4 bottom-4 w-[2px] bg-black/5" />
-          <div className="absolute left-[15px] top-4 bottom-4 w-[1px] bg-white/40" />
         </div>
 
         {/* Shadow floor */}

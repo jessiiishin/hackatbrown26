@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
 import { MapPin, DollarSign, Clock, Apple, ChevronRight, ChevronLeft } from 'lucide-react';
 import type { CrawlParams, BudgetTier } from './types';
 import { BUDGET_TIERS } from '../utils/pricerangestuff'
@@ -89,47 +88,45 @@ export default function FoodCrawlForm(props: Props) {
   };
 
   return (
-    <motion.div
+    <div
       key="step1"
-      initial={{ rotateY: 110, opacity: 0 }}
-      animate={{ rotateY: 0, opacity: 1 }}
-      exit={{ rotateY: -110, opacity: 0 }}
-      transition={{ duration: 0.8, ease: [0.645, 0.045, 0.355, 1] }}
-      className="w-full h-full p-6 sm:p-12 origin-left h-full"
+      className="w-full p-6 sm:p-12 flex flex-col items-center box-border"
     >
-      <div className="flex items-center gap-4 mb-8">
-        <button 
+      <div className="flex items-center gap-4 mb-8 w-full shrink-0">
+        <button
           onClick={() => props.setStep(0)}
           className="p-2 hover:bg-gray-100 rounded-full transition-colors"
         >
           <ChevronLeft className="w-6 h-6 text-gray-400" />
         </button>
-        <h2 className="text-3xl font-bold" style={{ color: '#242116', fontFamily: 'Parkinsans' }}>Chapter Setup</h2>
+        <h2
+          className="text-3xl font-bold"
+          style={{ color: '#242116', fontFamily: 'Parkinsans' }}
+        >
+          Chapter Setup
+        </h2>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl">
-        {/* City Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <CityComponent 
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-8 max-w-2xl w-full flex-1 overflow-y-auto"
+      >
+          {/* City + Budget */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <CityComponent
               city={city}
               setCity={setCity}
               isCityDropdown={isCityDropdown}
               setIsCityDropdown={setIsCityDropdown}
             />
-          </div>
 
-          <div>
             <BudgetComponent
               budgetTier={budget}
               setBudgetTier={setBudget}
             />
           </div>
-        </div>
 
-        {/* Time Window */}
-        <div>
-          <TimeComponent 
+          <TimeComponent
             startHour={startHour}
             setStartHour={setStartHour}
             startMinute={startMinute}
@@ -145,36 +142,30 @@ export default function FoodCrawlForm(props: Props) {
             hours={hours}
             minutes={minutes}
           />
-        </div>
 
-        {/* Dietary */}
-        <div>
-          <DietaryComponent 
+          <DietaryComponent
             toggleDietary={toggleDietary}
-            dietary={dietary}/>
-        </div>
+            dietary={dietary}
+          />
 
-        {/* Submit */}
-        <div className="pt-4">
           <button
             type="submit"
             disabled={!city}
-            className="w-full py-5 rounded-2xl font-bold text-xl transition-all relative overflow-hidden group shadow-lg"
+            className="w-full py-5 rounded-2xl font-bold text-xl transition-all shadow-lg"
             style={{
               backgroundColor: city ? '#F59F00' : '#f3f4f6',
               color: city ? '#FDF8EF' : '#a1a1aa',
               cursor: city ? 'pointer' : 'not-allowed',
-              transform: isClicked ? 'scale(0.96)' : 'scale(1)'
+              transform: isClicked ? 'scale(0.96)' : 'scale(1)',
             }}
           >
-            <span className="relative z-10 flex items-center justify-center gap-2">
+            <span className="flex items-center justify-center gap-2">
               {city ? 'Write Chapter' : 'Pick a City'}
               {city && <ChevronRight className="w-6 h-6" />}
             </span>
           </button>
-        </div>
-      </form>
-    </motion.div>
+        </form>
+    </div>
   );
 }
 

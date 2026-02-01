@@ -419,54 +419,6 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           </div>
         ))}
       </div>
-
-      {/* Footer */}
-      <div
-        className="mt-8 rounded-2xl p-6 text-white text-center"
-        style={{
-          background:
-            "linear-gradient(to right, #F59F00, #C1EA78)",
-        }}
-      >
-        <h3 className="text-2xl font-bold mb-2">
-          Ready to explore?
-        </h3>
-        <p className="mb-4" style={{ opacity: 0.9 }}>
-          Save this itinerary and start your culinary adventure!
-        </p>
-        <div className="flex justify-center gap-4">
-          <button
-            onClick={handleDownload}
-            className="px-6 py-3 rounded-xl font-semibold transition-colors"
-            style={{
-              backgroundColor: "white",
-              color: "#F59F00",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor =
-                "#FDF8EF")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "white")
-            }
-          >
-            Download Itinerary
-          </button>
-          <button
-            onClick={onReset}
-            className="px-6 py-3 rounded-xl font-semibold text-white transition-opacity"
-            style={{ backgroundColor: "#D97706" }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.opacity = "0.9")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.opacity = "1")
-            }
-          >
-            Plan Another Crawl
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

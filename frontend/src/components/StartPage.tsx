@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { User, BookOpen, ChevronRight, Plus, History, Star } from 'lucide-react';
 
 interface StartPageProps {
@@ -7,17 +6,19 @@ interface StartPageProps {
 
 export default function StartPage({ setStep }: StartPageProps) {
     return (
-        <motion.div
+        <div
             key="step0"
-            initial={{ rotateY: 0, opacity: 1 }}
-            exit={{ rotateY: -110, opacity: 0, transition: { duration: 0.8, ease: [0.645, 0.045, 0.355, 1] } }}
-            className="w-full h-full p-6 sm:p-12 flex flex-col items-center origin-left h-full"
+            className="w-full h-[1000px] p-6 sm:p-12 flex flex-col items-center box-border overflow-y-auto"
         >
             <div className="max-w-xl w-full text-center space-y-8 sm:space-y-12">
                 <div className="space-y-4">
-                <User className="w-12 h-12 sm:w-16 h-16 mx-auto mb-4 sm:mb-6" style={{ color: '#F59F00' }} />
-                <h2 className="text-3xl sm:text-4xl font-bold" style={{ color: '#242116', fontFamily: 'Parkinsans' }}>All About You</h2>
-                <p className="text-gray-600 text-sm sm:text-base">Your culinary journal and taste profile.</p>
+                <img src="/munch.png" alt="Munch" style={{ width: '120px', height: '120px' }} className="mx-auto mb-4 sm:mb-6 object-contain" />
+                <h2 className="text-3xl sm:text-4xl font-bold" style={{ color: '#242116', fontFamily: 'Parkinsans' }}>
+                    Munching Awaits!
+                </h2>
+                <p className="text-gray-600 text-sm sm:text-base">
+                    Start your very own food tour today
+                </p>
                 </div>
 
                 <div className="grid gap-4 sm:gap-6">
@@ -74,6 +75,6 @@ export default function StartPage({ setStep }: StartPageProps) {
                 </p>
                 </div>
             </div>
-        </motion.div>
+        </div>
     )
 }
