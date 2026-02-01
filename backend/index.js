@@ -85,54 +85,51 @@ app.get('/places/restaurants', async (req, res) => {
 });
 
 /**
- * GET /places/landmarks?city=New+York
- * Returns 5 landmarks from Google Places API for the given city.
+ * Geocode a city name to get its viewport (bounds) so we can restrict Places results to that area.
+ * Returns { low: { latitude, longitude }, high: { latitude, longitude } } or null.
  */
-app.get('/places/landmarks', async (req, res) => {
-  const city = (req.query.city || '').trim();
+async function geocodeCity(city, apiKey) {
+  const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(city)}&key=${apiKey}`;
+  const res = await fetch(geocodeUrl);
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data.status !== 'OK' || !data.results || data.results.length === 0) return null;
+  const first = data.results[0];
+  const viewport = first.geometry && first.geometry.viewport;
+  if (!viewport || !viewport.southwest || !viewport.northeast) return null;
+  return {
+    low: {
+      latitude: viewport.southwest.lat,
+      longitude: viewport.southwest.lng,
+    },
+    high: {
+      latitude: viewport.northeast.lat,
+      longitude: viewport.northeast.lng,
+    },
+  };
+}
 
-  if (!city) {
-    return res.status(400).json({ error: 'Query parameter "city" is required' });
-  }
-
-  const apiKey = config.GOOGLE_PLACES_API_KEY;
-  if (!apiKey || apiKey.startsWith('YOUR_')) {
-    return res.status(503).json({
-      error: 'Google Places API key is not configured. Set GOOGLE_PLACES_API_KEY in backend .env',
-    });
-  }
-
-  try {
-    const landmarks = await fetchLandmarksFromPlacesAPI(city, apiKey);
-    return res.json({ landmarks });
-  } catch (err) {
-    console.error('Places API error:', err.message);
-    return res.status(502).json({
-      error: 'Failed to fetch landmarks from Google Places',
-      details: err.message,
-    });
-  }
-});
+const tierToPriceLevels = {
+  $: ['PRICE_LEVEL_INEXPENSIVE'],
+  $$: ['PRICE_LEVEL_MODERATE'],
+  $$$: ['PRICE_LEVEL_EXPENSIVE'],
+  $$$$: ['PRICE_LEVEL_EXPENSIVE'],
+};
 
 /**
- * Calls Google Places API (Text Search) for 5 restaurants in city with given price tier.
- * Returns array of { id, name, address, lat, lng, priceLevel }.
+ * Calls Google Places API (Text Search). If usePriceFilter is true, request includes priceLevels;
+ * otherwise fetches all restaurants in city so we can filter by price in code (fallback when strict filter returns 0).
+ * Returns array of places (raw API shape).
  */
-async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
-  const tierToPriceLevels = {
-    $: ['PRICE_LEVEL_INEXPENSIVE'],
-    $$: ['PRICE_LEVEL_MODERATE'],
-    $$$: ['PRICE_LEVEL_EXPENSIVE'],
-    $$$$: ['PRICE_LEVEL_EXPENSIVE'], // API may not have VERY_EXPENSIVE; use EXPENSIVE for $$$$
-  };
-  const priceLevels = tierToPriceLevels[budgetTier];
-
+async function searchPlaces(city, priceLevels, apiKey, usePriceFilter) {
+  const locationRestriction = await geocodeCity(city, apiKey);
   const url = 'https://places.googleapis.com/v1/places:searchText';
   const body = {
     textQuery: `restaurants in ${city}`,
     includedType: 'restaurant',
-    priceLevels,
-    pageSize: 5,
+    pageSize: 20,
+    ...(locationRestriction && { locationRestriction: { rectangle: locationRestriction } }),
+    ...(usePriceFilter && priceLevels.length && { priceLevels }),
   };
 
   const fieldMask = [
@@ -141,6 +138,7 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
     'places.formattedAddress',
     'places.location',
     'places.priceLevel',
+    'places.photos',
   ].join(',');
 
   const response = await fetch(url, {
@@ -159,21 +157,67 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
   }
 
   const data = await response.json();
-  const places = data.places || [];
+  return data.places || [];
+}
 
-  const matching = places.filter((p) => {
+/**
+ * Fetches up to 5 restaurants in city for the given price tier. If the strict price filter returns 0,
+ * retries without the price filter and keeps only places that match the tier so we still show 1–4 when available.
+ * Returns array of { id, name, address, lat, lng, priceLevel, image }.
+ */
+async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
+  const priceLevels = tierToPriceLevels[budgetTier];
+
+  let places = await searchPlaces(city, priceLevels, apiKey, true);
+  let matching = places.filter((p) => {
     const level = p.priceLevel || '';
     return priceLevels.includes(level);
   });
 
-  return matching.map((p) => ({
-    id: p.id || null,
-    name: (p.displayName && p.displayName.text) || 'Unknown',
-    address: p.formattedAddress || '',
-    lat: (p.location && p.location.latitude) ?? null,
-    lng: (p.location && p.location.longitude) ?? null,
-    priceLevel: p.priceLevel || budgetTier,
-  }));
+  if (matching.length === 0) {
+    places = await searchPlaces(city, priceLevels, apiKey, false);
+    matching = places.filter((p) => {
+      const level = p.priceLevel || '';
+      return priceLevels.includes(level);
+    });
+  }
+
+  const shuffled = matching.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const selected = shuffled.slice(0, 5);
+
+  const results = await Promise.all(
+    selected.map(async (p) => {
+      let image = null;
+      const photoName = p.photos && p.photos[0] && p.photos[0].name;
+      if (photoName) {
+        try {
+          const photoUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&maxHeightPx=600&skipHttpRedirect=true&key=${apiKey}`;
+          const photoRes = await fetch(photoUrl);
+          if (photoRes.ok) {
+            const photoData = await photoRes.json();
+            if (photoData.photoUri) image = photoData.photoUri;
+          }
+        } catch (e) {
+          // keep image null, frontend will use placeholder
+        }
+      }
+      return {
+        id: p.id || null,
+        name: (p.displayName && p.displayName.text) || 'Unknown',
+        address: p.formattedAddress || '',
+        lat: (p.location && p.location.latitude) ?? null,
+        lng: (p.location && p.location.longitude) ?? null,
+        priceLevel: p.priceLevel || budgetTier,
+        image,
+      };
+    })
+  );
+
+  return results;
 }
 
 /**
