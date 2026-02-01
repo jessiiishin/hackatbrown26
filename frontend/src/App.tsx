@@ -9,7 +9,6 @@ import {
   UserButton,
 } from "@clerk/clerk-react";
 
-
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
 
