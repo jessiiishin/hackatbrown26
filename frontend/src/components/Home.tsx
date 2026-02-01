@@ -86,13 +86,41 @@ export default function Home() {
     }
   };
 
-  // Handler to fetch both restaurants and landmarks and display as a combined crawl
+  // Handler to fetch both restaurants and landmarks: use time-constrained itinerary (walking ETA + estimated visit time <= user window)
   const handleGenerateCombinedCrawl = async (params: CrawlParams) => {
     setCrawl(null);
     setCrawlError(null);
     setIsGenerating(true);
     try {
-      // Fetch restaurants
+      const itineraryRes = await fetch(`${API_BASE}/itinerary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          city: params.city,
+          budgetTier: params.budget,
+          startTime: params.startTime,
+          endTime: params.endTime,
+        }),
+      });
+      const itineraryData = await itineraryRes.json().catch(() => ({}));
+
+      if (itineraryRes.ok && itineraryData.stops && itineraryData.stops.length > 0) {
+        const stops = itineraryData.stops.map((s: Stop) => ({
+          ...s,
+          dietaryOptions: s.dietaryOptions ?? [],
+        }));
+        const totalCost = stops.reduce((sum, s) => sum + s.price, 0);
+        setCrawl({
+          stops,
+          totalCost,
+          totalTime: itineraryData.totalTime ?? stops.reduce((sum, s) => sum + s.duration, 0),
+          route: itineraryData.route ?? generateRoute(stops),
+          budgetTier: params.budget,
+        });
+        return;
+      }
+
+      // Fallback: fetch restaurants and landmarks separately (no time constraint)
       const restUrl = `${API_BASE}/places/restaurants?city=${encodeURIComponent(params.city)}&budgetTier=${encodeURIComponent(params.budget)}`;
       const restRes = await fetch(restUrl);
       if (!restRes.ok) {
@@ -102,7 +130,6 @@ export default function Home() {
       const restData = await restRes.json();
       const restaurantStops = mapApiRestaurantsToStops(restData.restaurants || [], params);
 
-      // Fetch landmarks
       const landUrl = `${API_BASE}/places/landmarks?city=${encodeURIComponent(params.city)}`;
       const landRes = await fetch(landUrl);
       if (!landRes.ok) {
@@ -124,16 +151,13 @@ export default function Home() {
         closeTime: '',
         lat: l.lat,
         lng: l.lng,
-        color: 'purple',
       }));
 
-      // Combine and sort (optional: sort by name or interleave)
       const stops = [...restaurantStops, ...landmarkStops];
       if (stops.length === 0) {
         setCrawlError('No restaurants or landmarks found. Try a different city.');
         return;
       }
-      // Optionally, sort or interleave
       stops.sort((a, b) => a.name.localeCompare(b.name));
       const totalCost = stops.reduce((sum, s) => sum + s.price, 0);
       const totalTime = stops.reduce((sum, s) => sum + s.duration, 0);

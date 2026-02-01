@@ -381,6 +381,250 @@ app.get('/places/landmarks', async (req, res) => {
   }
 });
 
+/** Estimated visit time in minutes per stop type */
+const EST_RESTAURANT_MINUTES = 45;
+const EST_LANDMARK_MINUTES = 30;
+const MAX_STOPS = 10;
+
+/**
+ * Parse "09:00 AM" / "12:00 PM" to minutes since midnight.
+ */
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return 0;
+  const parts = timeStr.trim().split(/\s+/);
+  const period = (parts[1] || '').toUpperCase();
+  const [h, m] = (parts[0] || '0:0').split(':').map(Number);
+  let hours = h || 0;
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + (m || 0);
+}
+
+/**
+ * Get walking duration matrix (minutes) between all pairs of places.
+ * places: Array<{ lat, lng }> with valid lat/lng.
+ * Returns 2D array: durationMinutes[i][j] = walking minutes from i to j, or Infinity if unavailable.
+ */
+async function getWalkingDurationMatrix(places, apiKey) {
+  const n = places.length;
+  const durationMinutes = Array.from({ length: n }, () => Array(n).fill(Infinity));
+  if (n === 0) return durationMinutes;
+
+  const points = places.map((p) => `${p.lat},${p.lng}`);
+  const origins = points.join('|');
+  const destinations = origins;
+  const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origins)}&destinations=${encodeURIComponent(destinations)}&mode=walking&key=${apiKey}`;
+  const res = await fetch(url);
+  if (!res.ok) return durationMinutes;
+  const data = await res.json();
+  if (data.status !== 'OK' || !data.rows) return durationMinutes;
+
+  for (let i = 0; i < data.rows.length && i < n; i++) {
+    const row = data.rows[i].elements || [];
+    for (let j = 0; j < row.length && j < n; j++) {
+      const el = row[j];
+      if (el.status === 'OK' && el.duration && el.duration.value != null) {
+        durationMinutes[i][j] = Math.ceil(el.duration.value / 60);
+      }
+    }
+  }
+  return durationMinutes;
+}
+
+/**
+ * Build a time-constrained itinerary: food and landmarks, alternating, using walking ETA and estimated visit time.
+ * totalMinutes: max total time (walking + visit).
+ * Returns { orderedStops, walkingMinutesBetween, totalWalkingMinutes, totalVisitMinutes }.
+ */
+function buildTimeConstrainedItinerary(restaurants, landmarks, totalMinutes, durationMinutes) {
+  const restIndices = restaurants.map((_, i) => ({ type: 'restaurant', index: i, estMinutes: EST_RESTAURANT_MINUTES }));
+  const landIndices = landmarks.map((_, i) => ({ type: 'landmark', index: i, estMinutes: EST_LANDMARK_MINUTES }));
+  const allPlaces = [...restaurants, ...landmarks];
+  const nRest = restaurants.length;
+  const nLand = landmarks.length;
+  const getMatrixIndex = (type, index) => (type === 'restaurant' ? index : nRest + index);
+
+  const orderedStops = [];
+  const walkingMinutesBetween = [];
+  let totalWalking = 0;
+  let totalVisit = 0;
+  let currentMatrixIndex = null;
+  const usedRest = new Set();
+  const usedLand = new Set();
+
+  const remaining = () => ({
+    restaurants: restIndices.filter((r) => !usedRest.has(r.index)),
+    landmarks: landIndices.filter((l) => !usedLand.has(l.index)),
+  });
+
+  const pickFirst = () => {
+    if (restIndices.length > 0) {
+      const r = restIndices[0];
+      usedRest.add(r.index);
+      currentMatrixIndex = getMatrixIndex('restaurant', r.index);
+      orderedStops.push({ type: 'restaurant', place: restaurants[r.index], estMinutes: r.estMinutes });
+      totalVisit += r.estMinutes;
+      return true;
+    }
+    if (landIndices.length > 0) {
+      const l = landIndices[0];
+      usedLand.add(l.index);
+      currentMatrixIndex = getMatrixIndex('landmark', l.index);
+      orderedStops.push({ type: 'landmark', place: landmarks[l.index], estMinutes: l.estMinutes });
+      totalVisit += l.estMinutes;
+      return true;
+    }
+    return false;
+  };
+
+  if (!pickFirst()) return { orderedStops: [], walkingMinutesBetween: [], totalWalkingMinutes: 0, totalVisitMinutes: 0 };
+
+  let wantRestaurant = false;
+  while (orderedStops.length < MAX_STOPS) {
+    const { restaurants: availRest, landmarks: availLand } = remaining();
+    const candidates = wantRestaurant ? availRest : availLand;
+    if (candidates.length === 0) {
+      wantRestaurant = !wantRestaurant;
+      if ((wantRestaurant ? availRest : availLand).length === 0) break;
+      continue;
+    }
+
+    let best = null;
+    let bestWalk = Infinity;
+    for (const c of candidates) {
+      const nextIdx = getMatrixIndex(c.type, c.index);
+      const walk = durationMinutes[currentMatrixIndex][nextIdx];
+      const newTotal = totalWalking + walk + totalVisit + c.estMinutes;
+      if (newTotal <= totalMinutes && walk < bestWalk) {
+        bestWalk = walk;
+        best = c;
+      }
+    }
+    if (best == null) break;
+
+    totalWalking += bestWalk;
+    walkingMinutesBetween.push(bestWalk);
+    totalVisit += best.estMinutes;
+    if (best.type === 'restaurant') usedRest.add(best.index);
+    else usedLand.add(best.index);
+    currentMatrixIndex = getMatrixIndex(best.type, best.index);
+    orderedStops.push({
+      type: best.type,
+      place: best.type === 'restaurant' ? restaurants[best.index] : landmarks[best.index],
+      estMinutes: best.estMinutes,
+    });
+    wantRestaurant = !wantRestaurant;
+  }
+
+  return {
+    orderedStops,
+    walkingMinutesBetween,
+    totalWalkingMinutes: totalWalking,
+    totalVisitMinutes: totalVisit,
+  };
+}
+
+/**
+ * POST /itinerary
+ * Body: { city, budgetTier, startTime, endTime }
+ * Returns time-constrained crawl: stops (food + landmarks), walking ETAs, estimated visit times, so total <= (endTime - startTime).
+ * Uses Distance Matrix API (walking) for ETA between stops.
+ */
+app.post('/itinerary', async (req, res) => {
+  const { city, budgetTier, startTime, endTime } = req.body || {};
+  const startM = parseTimeToMinutes(startTime);
+  const endM = parseTimeToMinutes(endTime);
+  let totalMinutes = endM > startM ? endM - startM : 24 * 60 - startM + endM;
+  if (totalMinutes <= 0) totalMinutes = 3 * 60;
+
+  const apiKey = config.GOOGLE_PLACES_API_KEY;
+  if (!apiKey || apiKey.startsWith('YOUR_')) {
+    return res.status(503).json({
+      error: 'Google Places API key is not configured. Set GOOGLE_PLACES_API_KEY in backend .env',
+    });
+  }
+
+  const validTiers = ['$', '$$', '$$$'];
+  if (!validTiers.includes(budgetTier)) {
+    return res.status(400).json({ error: 'budgetTier must be one of: $, $$, $$$' });
+  }
+  if (!city || !city.trim()) {
+    return res.status(400).json({ error: 'city is required' });
+  }
+
+  try {
+    const [restaurantsRaw, landmarksRaw] = await Promise.all([
+      fetchRestaurantsFromPlacesAPI(city.trim(), budgetTier, apiKey),
+      fetchLandmarksFromPlacesAPI(city.trim(), apiKey),
+    ]);
+
+    const restaurants = (restaurantsRaw || []).filter((r) => r.lat != null && r.lng != null);
+    const landmarks = (landmarksRaw || []).filter((l) => l.lat != null && l.lng != null);
+    const allPlaces = [...restaurants, ...landmarks];
+    if (allPlaces.length === 0) {
+      return res.status(200).json({
+        stops: [],
+        walkingMinutesBetween: [],
+        totalWalkingMinutes: 0,
+        totalVisitMinutes: 0,
+        route: '',
+        budgetTier,
+      });
+    }
+
+    const durationMinutes = await getWalkingDurationMatrix(allPlaces, apiKey);
+    const { orderedStops, walkingMinutesBetween, totalWalkingMinutes, totalVisitMinutes } = buildTimeConstrainedItinerary(
+      restaurants,
+      landmarks,
+      totalMinutes,
+      durationMinutes
+    );
+
+    const pricePerStop = budgetTier === '$' ? 15 : budgetTier === '$$' ? 40 : 80;
+    const placeholderRest = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800';
+    const placeholderLand = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800';
+
+    const stops = orderedStops.map((s, i) => {
+      const p = s.place;
+      const isRest = s.type === 'restaurant';
+      return {
+        id: p.id || `place-${i}-${p.name.replace(/\s/g, '-')}`,
+        name: p.name,
+        type: s.type,
+        description: `${p.name} in ${city}`,
+        price: isRest ? Math.round(pricePerStop / 5) : 0,
+        duration: s.estMinutes,
+        address: p.address || '',
+        dietaryOptions: [],
+        image: (p.image && p.image.trim()) ? p.image : isRest ? placeholderRest : placeholderLand,
+        openTime: isRest ? '09:00' : '',
+        closeTime: isRest ? '22:00' : '',
+        lat: p.lat,
+        lng: p.lng,
+        priceTier: isRest ? budgetTier : undefined,
+        walkingMinutesToNext: i < orderedStops.length - 1 && walkingMinutesBetween[i] != null ? walkingMinutesBetween[i] : undefined,
+      };
+    });
+
+    const route = stops.map((s, i) => (i === 0 ? `Start at ${s.name}` : `→ ${s.name}`)).join(' ');
+
+    return res.json({
+      stops,
+      walkingMinutesBetween,
+      totalWalkingMinutes,
+      totalVisitMinutes,
+      totalTime: totalVisitMinutes + totalWalkingMinutes,
+      route,
+      budgetTier,
+    });
+  } catch (err) {
+    console.error('Itinerary error:', err.message);
+    return res.status(502).json({
+      error: 'Failed to build itinerary',
+      details: err.message,
+    });
+  }
+});
 
 // Placeholder: Logging user adjustments
 function logUserAdjustment(adjustment) {
