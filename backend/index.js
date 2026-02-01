@@ -85,7 +85,33 @@ app.get('/places/restaurants', async (req, res) => {
 });
 
 /**
+ * Geocode a city name to get its viewport (bounds) so we can restrict Places results to that area.
+ * Returns { low: { latitude, longitude }, high: { latitude, longitude } } or null.
+ */
+async function geocodeCity(city, apiKey) {
+  const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(city)}&key=${apiKey}`;
+  const res = await fetch(geocodeUrl);
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data.status !== 'OK' || !data.results || data.results.length === 0) return null;
+  const first = data.results[0];
+  const viewport = first.geometry && first.geometry.viewport;
+  if (!viewport || !viewport.southwest || !viewport.northeast) return null;
+  return {
+    low: {
+      latitude: viewport.southwest.lat,
+      longitude: viewport.southwest.lng,
+    },
+    high: {
+      latitude: viewport.northeast.lat,
+      longitude: viewport.northeast.lng,
+    },
+  };
+}
+
+/**
  * Calls Google Places API (Text Search) for 5 restaurants in city with given price tier.
+ * Uses geocoding to restrict results to the actual city area (e.g. Tokyo, Japan, not Cranston, RI).
  * Returns array of { id, name, address, lat, lng, priceLevel }.
  */
 async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
@@ -97,12 +123,15 @@ async function fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey) {
   };
   const priceLevels = tierToPriceLevels[budgetTier];
 
+  const locationRestriction = await geocodeCity(city, apiKey);
+
   const url = 'https://places.googleapis.com/v1/places:searchText';
   const body = {
     textQuery: `restaurants in ${city}`,
     includedType: 'restaurant',
     priceLevels,
     pageSize: 5,
+    ...(locationRestriction && { locationRestriction: { rectangle: locationRestriction } }),
   };
 
   const fieldMask = [
