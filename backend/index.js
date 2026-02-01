@@ -55,6 +55,7 @@ app.get('/places', (req, res) => {
 app.get('/places/restaurants', async (req, res) => {
   const city = (req.query.city || '').trim();
   const budgetTier = (req.query.budgetTier || '').trim();
+  const maxDuration = parseInt(req.query.maxDuration, 10); // New parameter
 
   if (!city) {
     return res.status(400).json({ error: 'Query parameter "city" is required' });
@@ -67,6 +68,10 @@ app.get('/places/restaurants', async (req, res) => {
     });
   }
 
+  if (isNaN(maxDuration) || maxDuration <= 0) {
+    return res.status(400).json({ error: 'Query parameter "maxDuration" must be a positive number' });
+  }
+
   const apiKey = config.GOOGLE_PLACES_API_KEY;
   if (!apiKey || apiKey.startsWith('YOUR_')) {
     return res.status(503).json({
@@ -76,7 +81,11 @@ app.get('/places/restaurants', async (req, res) => {
 
   try {
     const restaurants = await fetchRestaurantsFromPlacesAPI(city, budgetTier, apiKey);
-    return res.json({ restaurants });
+
+    // Filter restaurants based on maxDuration
+    const filteredRestaurants = restaurants.filter(r => r.duration <= maxDuration);
+
+    return res.json({ restaurants: filteredRestaurants });
   } catch (err) {
     console.error('Places API error:', err.message);
     return res.status(502).json({
