@@ -141,7 +141,8 @@ export default function Home() {
         stops,
         totalCost,
         totalTime,
-        route: stops.map((s: Stop) => s.name).join(' → ')
+        route: stops.map((s: Stop) => s.name).join(' → '),
+        budgetTier: params.budget,
       });
     } catch (err) {
       setCrawlError(err instanceof Error ? err.message : 'Failed to load crawl.');
