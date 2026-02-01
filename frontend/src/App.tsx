@@ -7,7 +7,6 @@ export default function App() {
       {/* <AnimatePresence>
         {isLoading && <LoadingScreen key="loader" />}
       </AnimatePresence> */}
-
       <Home></Home>
     </div>
   );

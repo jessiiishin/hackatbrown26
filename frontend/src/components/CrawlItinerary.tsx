@@ -8,15 +8,22 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ResultMap } from "./ResultMap";
-import { loadGoogleMapsScript } from "../utils/googleMapsLoader";
-import type { Crawl } from "./types";
+import { loadGoogleMapsScript } from '../utils/googleMapsLoader'
+import { ImageWithFallback } from "./figma/ImageWithFallback";
+import type { Crawl, Stop } from "./types";
+import {
+  PRICE_TIER_RANGE_DISPLAY,
+  formatCrawlPriceRange,
+} from "../utils/pricerangestuff";
 
 interface Props {
   crawl: Crawl;
   onReset: () => void;
+  /** Called when the map optimizes stop order for shortest walking path; parent can update crawl.stops. */
+  onOrderOptimized?: (orderedStops: Stop[]) => void;
 }
 
-export function CrawlItinerary({ crawl, onReset }: Props) {
+export function CrawlItinerary({ crawl, onReset, onOrderOptimized }: Props) {
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
@@ -43,7 +50,7 @@ MY FOOD CRAWL ITINERARY
 =====================
 
 Total Stops: ${crawl.stops.length}
-Total Budget: $${crawl.totalCost}
+Price Range: ${crawl.budgetTier ? `${PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label} per meal • Total: ${formatCrawlPriceRange(crawl.budgetTier, crawl.stops.length)}` : `$${crawl.totalCost}`}
 Total Time: ${Math.floor(crawl.totalTime / 60)}h ${crawl.totalTime % 60}m
 
 STOPS:
@@ -54,7 +61,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
    ${stop.description}
    Address: ${stop.address}
    Duration: ${stop.duration} minutes
-   ${stop.type === "restaurant" ? `Price: $${stop.price}` : "Free Entry"}
+   ${stop.type === "restaurant" ? `Price: ${stop.priceTier ?? '$' + stop.price}` : "Free Entry"}
    ${stop.cuisine ? `Cuisine: ${stop.cuisine}` : ""}
 `,
   )
@@ -164,13 +171,20 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
               className="text-2xl font-bold"
               style={{ color: "#242116" }}
             >
-              ${crawl.totalCost}
+              {crawl.budgetTier
+                ? formatCrawlPriceRange(
+                    crawl.budgetTier,
+                    crawl.stops.length
+                  )
+                : `$${crawl.totalCost}`}
             </div>
             <div
               className="text-sm"
               style={{ color: "#242116", opacity: 0.6 }}
             >
-              Total Cost
+              {crawl.budgetTier
+                ? PRICE_TIER_RANGE_DISPLAY[crawl.budgetTier].label + " per meal"
+                : "Total Cost"}
             </div>
           </div>
           <div
@@ -220,7 +234,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           </p>
         </div>
         {mapsLoaded ? (
-          <ResultMap stops={crawl.stops} />
+          <ResultMap stops={crawl.stops} onOrderOptimized={onOrderOptimized} />
         ) : mapError ? (
           <div className="w-full h-[500px] bg-red-50 rounded-2xl flex items-center justify-center border-2 border-red-200">
             <div className="text-center px-8">
@@ -284,9 +298,9 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
             }}
           >
             <div className="flex gap-6 p-6">
-              {/* Image */}
+              {/* Image (Google Place photo or placeholder) */}
               <div className="flex-shrink-0">
-                <img
+                <ImageWithFallback
                   src={stop.image}
                   alt={stop.name}
                   className="w-48 h-48 object-cover rounded-xl"
@@ -361,7 +375,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
                         color: "#2E7D32",
                       }}
                     >
-                      ${stop.price}
+                      {stop.priceTier ?? `$${stop.price}`}
                     </div>
                   )}
                 </div>
