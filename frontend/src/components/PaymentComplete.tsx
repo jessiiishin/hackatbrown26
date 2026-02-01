@@ -49,7 +49,7 @@ export default function PaymentComplete({ setStep }: PaymentCompleteProps) {
 
         {/* Confirmation Message */}
         <p className="text-center text-sm text-gray-600">
-          A confirmation email has been sent to your inbox. You can now start creating food crawls!
+          A confirmation email has been sent to your inbox. You can now continue creating food crawls!
         </p>
 
         {/* Action Button */}
@@ -62,7 +62,7 @@ export default function PaymentComplete({ setStep }: PaymentCompleteProps) {
             padding: '12px'
           }}
         >
-          Start Creating Crawls
+          Continue Creating Crawls
           <ChevronRight className="w-6 h-6" />
         </button>
       </div>

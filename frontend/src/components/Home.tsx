@@ -213,7 +213,7 @@ export default function Home() {
           <div className="inline-flex items-center justify-center gap-3 mb-2">
             <div className="h-[2px] w-12 bg-[#F59F00]" />
             <span className="uppercase tracking-[0.3em] text-xs font-bold text-[#F59F00]">
-              Your Personal Food Tourguide
+              Your Personal Food Tour Guide
             </span>
             <div className="h-[2px] w-12 bg-[#F59F00]" />
           </div>

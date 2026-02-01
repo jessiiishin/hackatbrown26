@@ -31,7 +31,7 @@ export default function StartPage({ setStep }: StartPageProps) {
                         <Plus className="w-5 h-5 sm:w-6 h-6" style={{ color: '#F59F00' }} />
                     </div>
                     <div>
-                        <h3 className="font-bold text-base sm:text-lg" style={{ color: '#242116' }}>Start a New Chapter</h3>
+                        <h3 className="font-bold text-base sm:text-lg" style={{ color: '#242116' }}>Start a New Munch Mission</h3>
                         <p className="text-xs sm:text-sm text-gray-500">Generate a fresh culinary route.</p>
                     </div>
                     </div>
