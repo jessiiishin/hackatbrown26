@@ -3,7 +3,7 @@
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
     *, :before, :after, ::backdrop {
-      /* --tw-translate-x: 0;
+      --tw-translate-x: 0;
       --tw-translate-y: 0;
       --tw-translate-z: 0;
       --tw-rotate-x: rotateX(0);
@@ -52,7 +52,7 @@
       --tw-drop-shadow-color: initial;
       --tw-drop-shadow-alpha: 100%;
       --tw-drop-shadow-size: initial;
-      --tw-duration: initial; */
+      --tw-duration: initial;
     }
   }
 }
@@ -1430,7 +1430,7 @@
   }
 
   @media (hover: hover) {
-    .group-hover\:bg-\[\#D1E892\]\/20:is(:where(.group):hover *) {
+    .group-hover\:bg-\[\#C1EA78\]\/20:is(:where(.group):hover *) {
       background-color: oklab(89.4375% -.0579682 .0967789 / .2);
     }
   }
@@ -1459,8 +1459,8 @@
   }
 
   @media (hover: hover) {
-    .hover\:border-\[\#D1E892\]:hover {
-      border-color: #d1e892;
+    .hover\:border-\[\#C1EA78\]:hover {
+      border-color: #C1EA78;
     }
   }
 
@@ -1471,7 +1471,7 @@
   }
 
   @media (hover: hover) {
-    .hover\:bg-\[\#D1E892\]\/5:hover {
+    .hover\:bg-\[\#C1EA78\]\/5:hover {
       background-color: oklab(89.4375% -.0579682 .0967789 / .05);
     }
   }
@@ -1501,8 +1501,8 @@
     }
   }
 
-  .focus\:border-\[\#D1E892\]:focus {
-    border-color: #d1e892;
+  .focus\:border-\[\#C1EA78\]:focus {
+    border-color: #C1EA78;
   }
 
   .focus\:outline-none:focus {

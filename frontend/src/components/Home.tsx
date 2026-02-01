@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { FoodCrawlForm } from './FoodCrawlForm';
+import Book from './Book'
 import { CrawlItinerary } from './CrawlItinerary';
 import { cities } from './utils/citymock';
-import type { CrawlParams, Crawl, Stop } from './types';
+import type { CrawlParams, Crawl, Stop } from './types.tsx';
 
 export default function Home() {
   const [crawl, setCrawl] = useState<Crawl | null>(null);
@@ -57,11 +57,12 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
         >
           <div className="relative">
-            {!crawl ? (
+            <Book onGenerate={handleGenerateCrawl} />
+            {/* {!crawl ? (
               <FoodCrawlForm onGenerate={handleGenerateCrawl} />
             ) : (
               <CrawlItinerary crawl={crawl} onReset={handleReset} />
-            )}
+            )} */}
           </div>
         </motion.div>
       </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { Stop } from './Home';
+import type { Stop } from './types';
 import { coordinates } from './utils/citymock'
 
 interface Props {

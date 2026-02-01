@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { ResultMap } from "./ResultMap";
 import { loadGoogleMapsScript } from "../utils/googleMapsLoader";
-import type { Crawl } from "./Home";
+import type { Crawl } from "./types";
 
 interface Props {
   crawl: Crawl;
@@ -158,7 +158,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           >
             <DollarSign
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#D1E892" }}
+              style={{ color: "#C1EA78" }}
             />
             <div
               className="text-2xl font-bold"
@@ -182,7 +182,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
           >
             <Clock
               className="w-6 h-6 mx-auto mb-2"
-              style={{ color: "#D1E892" }}
+              style={{ color: "#C1EA78" }}
             />
             <div
               className="text-2xl font-bold"
@@ -411,7 +411,7 @@ ${index + 1}. ${stop.name} ${stop.type === "landmark" ? "📍" : "🍽️"}
         className="mt-8 rounded-2xl p-6 text-white text-center"
         style={{
           background:
-            "linear-gradient(to right, #F59F00, #D1E892)",
+            "linear-gradient(to right, #F59F00, #C1EA78)",
         }}
       >
         <h3 className="text-2xl font-bold mb-2">
